@@ -26,6 +26,34 @@ npm run db:seed
 npm run dev
 ```
 
+## 🐘 PostgreSQL & Supabase Integration
+
+This backend is architected for **PostgreSQL** and **Supabase Cloud**:
+
+### Option 1: Instant 1-Click Supabase SQL Setup
+1. Open your project on [Supabase.com](https://supabase.com).
+2. Go to **SQL Editor** in the left sidebar.
+3. Open [`prisma/supabase_schema.sql`](file:///c:/Users/Abcom/Desktop/Personal/api/prisma/supabase_schema.sql), copy the entire SQL script, and click **Run**.
+4. All 18 tables, UUID types, performance indexes, RLS policies, core settings, and seed records will be instantly created!
+
+### Option 2: Prisma Direct Push to Supabase / PostgreSQL
+1. In `api/.env`, set your connection strings:
+   ```env
+   DATABASE_URL="postgresql://postgres:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres?pgbouncer=true"
+   DIRECT_URL="postgresql://postgres:[PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres"
+   SUPABASE_URL="https://[PROJECT-REF].supabase.co"
+   SUPABASE_SERVICE_ROLE_KEY="your-supabase-service-role-key"
+   ```
+2. Push the PostgreSQL schema:
+   ```bash
+   npm run db:push:pg
+   ```
+3. Open Prisma Studio for your PostgreSQL database:
+   ```bash
+   npm run db:studio:pg
+   ```
+
+
 ## Demo Credentials
 - **Admin**: `admin@royal.techwavesolutions.dev` | `admin123`
 - **Customer**: `priya.sharma@example.com` | `customer123`
