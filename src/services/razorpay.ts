@@ -24,36 +24,30 @@ export class RazorpayService {
   }): Promise<{ id: string; amount: number; currency: string }> {
     const amountInPaise = Math.round(options.amount * 100);
 
-    if (
-      KEY_ID &&
-      (KEY_ID.startsWith('rzp_test_') || KEY_ID.startsWith('rzp_live_')) &&
-      KEY_ID !== 'rzp_test_placeholder_key' &&
-      KEY_ID !== 'rzp_test_demo123456'
-    ) {
-      try {
-        const client = this.getClient();
-        const order = await client.orders.create({
-          amount: amountInPaise,
-          currency: 'INR',
-          receipt: options.receipt,
-          notes: options.notes,
-        });
-        return {
-          id: order.id,
-          amount: Number(order.amount),
-          currency: order.currency,
-        };
-      } catch (error) {
-        console.warn('Razorpay API error, falling back to test order mode:', error);
-      }
+    if (!KEY_ID || KEY_ID === 'rzp_test_demo123456' || KEY_ID === 'rzp_test_placeholder_key') {
+      throw new Error(
+        'Real Razorpay credentials required: RAZORPAY_KEY_ID is currently set to placeholder demo123456. Please provide your real Razorpay Test Key ID & Secret.'
+      );
     }
 
-    const mockOrderId = `order_test_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
-    return {
-      id: mockOrderId,
-      amount: amountInPaise,
-      currency: 'INR',
-    };
+    try {
+      const client = this.getClient();
+      const order = await client.orders.create({
+        amount: amountInPaise,
+        currency: 'INR',
+        receipt: options.receipt,
+        notes: options.notes,
+      });
+      return {
+        id: order.id,
+        amount: Number(order.amount),
+        currency: order.currency,
+      };
+    } catch (error: any) {
+      console.error('Razorpay API error:', error);
+      const msg = error?.error?.description || error?.message || 'Razorpay order creation failed.';
+      throw new Error(`Razorpay Error: ${msg}`);
+    }
   }
 
   static verifyPaymentSignature(params: {
