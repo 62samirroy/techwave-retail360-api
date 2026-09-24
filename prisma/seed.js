@@ -134,7 +134,7 @@ async function main() {
       name: 'Bandhani & Leheriya',
       slug: 'bandhani-leheriya',
       description: 'Vibrant Rajasthani & Gujarati tie-and-dye masterworks celebrating festive joy and cultural heritage.',
-      image: 'https://images.unsplash.com/photo-1610030469668-935cb3c82e66?auto=format&fit=crop&q=80&w=800',
+      image: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=800',
       sortOrder: 5,
     },
     {
@@ -197,7 +197,7 @@ async function main() {
       isBestseller: false,
       tags: 'kanjivaram, emerald green, peacock motif, contrast pallu',
       images: [
-        'https://images.unsplash.com/photo-1610030469668-935cb3c82e66?auto=format&fit=crop&q=80&w=800',
+        'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=800',
         'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=800',
       ],
       attributes: [
@@ -381,7 +381,7 @@ async function main() {
       isBestseller: true,
       tags: 'bandhani, yellow, haldi, gota patti, kutch',
       images: [
-        'https://images.unsplash.com/photo-1610030469668-935cb3c82e66?auto=format&fit=crop&q=80&w=800',
+        'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=800',
       ],
       attributes: [
         { name: 'Fabric', value: 'Pure Viscose Georgette' },
@@ -584,7 +584,7 @@ async function main() {
       isBestseller: true,
       tags: 'bandhani, coral, peach, gota patti, jaipur',
       images: [
-        'https://images.unsplash.com/photo-1610030469668-935cb3c82e66?auto=format&fit=crop&q=80&w=800',
+        'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=800',
       ],
       attributes: [
         { name: 'Fabric', value: 'Pure Chinon Silk' },
@@ -684,7 +684,7 @@ async function main() {
       isBestseller: true,
       tags: 'paithani, silk, ruby red, peacock pallu, maharashtrian, bridal',
       images: [
-        'https://images.unsplash.com/photo-1610030469668-935cb3c82e66?auto=format&fit=crop&q=80&w=800',
+        'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=800',
       ],
       attributes: [
         { name: 'Fabric', value: 'Pure Yeola Paithani Silk' },
@@ -1023,7 +1023,7 @@ async function main() {
       email: 'suresh.menon@kerala.org',
       phone: '+91 9447123980',
       message: 'Can you deliver the Kadwa Banarasi Saree to Kochi by next Friday for an engagement ceremony?',
-      inquiryType: 'ORDER',
+      inquiryType: 'PRODUCT',
       productId: createdProducts[2].id,
       status: 'NEW',
       adminNotes: null,
@@ -1033,7 +1033,7 @@ async function main() {
       email: 'pooja.agarwal@gmail.com',
       phone: '+91 9820011223',
       message: 'Looking for bulk purchase of 12 Bandhani sarees for bridesmaids gifts. Any special discount?',
-      inquiryType: 'CUSTOM_ORDER',
+      inquiryType: 'WHOLESALE',
       productId: createdProducts[8].id,
       status: 'RESOLVED',
       adminNotes: 'Offered 15% wholesale discount with free gift packaging. Order finalized.',
