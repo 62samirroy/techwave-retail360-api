@@ -13,11 +13,19 @@ export class ProductsController {
       const inStock = req.query.inStock === 'true';
       const featured = req.query.featured === 'true';
       const bestseller = req.query.bestseller === 'true';
+      const statusParam = (req.query.status as string) || '';
+      const isAdmin = req.query.admin === 'true';
       const page = Math.max(1, Number(req.query.page) || 1);
       const limit = Math.max(1, Math.min(100, Number(req.query.limit) || 12));
       const skip = (page - 1) * limit;
 
-      const where: any = { status: 'ACTIVE' };
+      const where: any = {};
+
+      if (statusParam && statusParam.toUpperCase() !== 'ALL') {
+        where.status = statusParam.toUpperCase();
+      } else if (!statusParam && !isAdmin) {
+        where.status = 'ACTIVE';
+      }
 
       if (search) {
         where.OR = [

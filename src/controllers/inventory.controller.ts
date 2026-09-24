@@ -7,6 +7,8 @@ export class InventoryController {
     try {
       const lowStockOnly = req.query.lowStockOnly === 'true';
       const search = (req.query.search as string) || '';
+      const page = Math.max(1, Number(req.query.page) || 1);
+      const limit = Math.max(1, Math.min(100, Number(req.query.limit) || 10));
 
       const where: any = { status: 'ACTIVE' };
       if (search) {
@@ -25,7 +27,7 @@ export class InventoryController {
         },
       });
 
-      const inventoryList = products
+      const allItems = products
         .map((p) => ({
           productId: p.id,
           name: p.name,
@@ -39,14 +41,24 @@ export class InventoryController {
         }))
         .filter((item) => (lowStockOnly ? item.isLowStock : true));
 
+      const total = allItems.length;
+      const skip = (page - 1) * limit;
+      const pagedItems = allItems.slice(skip, skip + limit);
+
       const totalProducts = products.length;
-      const lowStockCount = inventoryList.filter((i) => i.isLowStock).length;
-      const outOfStockCount = inventoryList.filter((i) => i.isOutOfStock).length;
+      const lowStockCount = products.filter((p) => p.stock <= p.lowStockThreshold).length;
+      const outOfStockCount = products.filter((p) => p.stock <= 0).length;
 
       return res.json({
         success: true,
         data: {
-          items: inventoryList,
+          items: pagedItems,
+          pagination: {
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit) || 1,
+          },
           summary: {
             totalProducts,
             lowStockCount,
