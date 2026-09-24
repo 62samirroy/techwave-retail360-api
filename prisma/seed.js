@@ -106,42 +106,42 @@ async function main() {
       name: 'Kanjivaram Silk',
       slug: 'kanjivaram-silk',
       description: 'Handwoven pure mulberry silk sarees with exquisite pure gold and silver zari borders.',
-      image: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=800',
+      image: 'https://images.pexels.com/photos/1488312/pexels-photo-1488312.jpeg?auto=compress&cs=tinysrgb&w=800',
       sortOrder: 1,
     },
     {
       name: 'Banarasi Brocade',
       slug: 'banarasi-brocade',
       description: 'Timeless Varanasi handlooms featuring opulent floral jaal, kadwa weaves, and regal pallus.',
-      image: 'https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&q=80&w=800',
+      image: 'https://images.pexels.com/photos/3321793/pexels-photo-3321793.jpeg?auto=compress&cs=tinysrgb&w=800',
       sortOrder: 2,
     },
     {
       name: 'Organza & Floral',
       slug: 'organza-floral',
       description: 'Weightless, sheer organza sarees with delicate botanical hand-paint and scalloped gota patti.',
-      image: 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&q=80&w=800',
+      image: 'https://images.pexels.com/photos/3014856/pexels-photo-3014856.jpeg?auto=compress&cs=tinysrgb&w=800',
       sortOrder: 3,
     },
     {
       name: 'Chanderi & Linen',
       slug: 'chanderi-linen',
       description: 'Breathable, lightweight handlooms crafted for effortless grace, boardrooms, and daytime ceremonies.',
-      image: 'https://images.unsplash.com/photo-1609357605129-26f69add5d6e?auto=format&fit=crop&q=80&w=800',
+      image: 'https://images.pexels.com/photos/2220316/pexels-photo-2220316.jpeg?auto=compress&cs=tinysrgb&w=800',
       sortOrder: 4,
     },
     {
       name: 'Bandhani & Leheriya',
       slug: 'bandhani-leheriya',
       description: 'Vibrant Rajasthani & Gujarati tie-and-dye masterworks celebrating festive joy and cultural heritage.',
-      image: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=800',
+      image: 'https://images.pexels.com/photos/1730877/pexels-photo-1730877.jpeg?auto=compress&cs=tinysrgb&w=800',
       sortOrder: 5,
     },
     {
       name: 'Party & Cocktail Wear',
       slug: 'party-cocktail-wear',
       description: 'Contemporary drape sarees, sequins, and pre-stitched party pieces designed for modern elegance.',
-      image: 'https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?auto=format&fit=crop&q=80&w=800',
+      image: 'https://images.pexels.com/photos/247287/pexels-photo-247287.jpeg?auto=compress&cs=tinysrgb&w=800',
       sortOrder: 6,
     },
   ];
@@ -169,8 +169,8 @@ async function main() {
       isBestseller: true,
       tags: 'kanjivaram, silk, bridal, red, wedding, gold zari',
       images: [
+        '/images/products/saree-crimson-royal.jpg',
         'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=800',
-        'https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&q=80&w=800',
       ],
       attributes: [
         { name: 'Fabric', value: '100% Pure Mulberry Silk' },
@@ -197,7 +197,7 @@ async function main() {
       isBestseller: false,
       tags: 'kanjivaram, emerald green, peacock motif, contrast pallu',
       images: [
-        'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=800',
+        '/images/products/saree-emerald-peacock.jpg',
         'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=800',
       ],
       attributes: [
@@ -224,8 +224,8 @@ async function main() {
       isBestseller: true,
       tags: 'banarasi, navy blue, kadwa, wedding, luxury',
       images: [
+        '/images/products/saree-navy-kadwa.jpg',
         'https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&q=80&w=800',
-        'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&q=80&w=800',
       ],
       attributes: [
         { name: 'Fabric', value: 'Pure Katan Silk' },
@@ -251,6 +251,7 @@ async function main() {
       isBestseller: true,
       tags: 'tanchoi, banarasi, pink, pastel, festive',
       images: [
+        '/images/products/saree-rose-tanchoi.jpg',
         'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&q=80&w=800',
       ],
       attributes: [
