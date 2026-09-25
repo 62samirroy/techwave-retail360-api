@@ -59,5 +59,5 @@ app.listen(PORT, () => {
   console.log('====================================================');
 });
 
-// Reload trigger: Manual code entry only, demoCode removed from responses
+// Reload trigger: Dual-engine email delivery (Direct Nodemailer SMTP + Resend API) active
 export default app;

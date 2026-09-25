@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import prisma from '../lib/db';
 import { comparePassword, hashPassword, signToken, AUTH_COOKIE_NAME } from '../lib/auth';
 import { AuthenticatedRequest } from '../types';
+import { EmailService } from '../services/email';
 
 // In-memory OTP storage with TTL (5 minutes)
 interface PhoneOtpEntry {
@@ -70,6 +71,12 @@ export class AuthController {
         maxAge: 7 * 24 * 60 * 60 * 1000,
       });
 
+      // Send welcome/login notification email
+      EmailService.sendWelcomeEmail({
+        name: user.name,
+        email: user.email,
+      });
+
       return res.json({
         success: true,
         message: 'Login successful',
@@ -112,44 +119,14 @@ export class AuthController {
 
       console.log(`[REGISTER OTP] Verification code for ${normalizedEmail}: ${code}`);
 
-      // Dispatch live email via Resend
-      if (process.env.RESEND_API_KEY) {
-        try {
-          let fromAddress = process.env.EMAIL_FROM || 'Royal Saree & Fashion <onboarding@resend.dev>';
-          if (
-            fromAddress.includes('@gmail.com') ||
-            fromAddress.includes('@yahoo.com') ||
-            fromAddress.includes('@outlook.com') ||
-            fromAddress.includes('@hotmail.com')
-          ) {
-            fromAddress = 'Royal Saree & Fashion <onboarding@resend.dev>';
-          }
-
-          await fetch('https://api.resend.com/emails', {
-            method: 'POST',
-            headers: {
-              Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-              'Content-Type': 'application/json',
-              'User-Agent': 'Retail360Node/1.0',
-            },
-            body: JSON.stringify({
-              from: fromAddress,
-              to: [normalizedEmail],
-              subject: 'Verify Your Email Address - Royal Saree & Fashion',
-              html: `<div style="font-family:sans-serif;padding:24px;border:1px solid #e5e5e5;border-radius:10px;max-width:520px;margin:0 auto;">
-                <h2 style="color:#4A154B;margin-top:0;">Royal Saree &amp; Fashion</h2>
-                <p>Namaste <strong>${name.trim()}</strong>,</p>
-                <p>Welcome! Use the 6-digit verification code below to verify your email address and activate your customer account:</p>
-                <div style="font-size:26px;font-weight:bold;letter-spacing:6px;color:#D97706;padding:14px;background:#f9f9f9;text-align:center;border-radius:8px;margin:20px 0;">${code}</div>
-                <p style="font-size:12px;color:#777;">This verification code is valid for 15 minutes. If you did not request this, please disregard this email.</p>
-              </div>`,
-            }),
-          });
-          console.log(`[EMAIL GATEWAY] Registration OTP code sent to ${normalizedEmail}`);
-        } catch (mailErr: any) {
-          console.error('[EMAIL GATEWAY] Registration email failed:', mailErr.message);
-        }
-      }
+      // Dispatch live email via EmailService
+      EmailService.sendVerificationCodeEmail({
+        name: name.trim(),
+        email: normalizedEmail,
+        code,
+      }).catch((mailErr: any) => {
+        console.error('[EMAIL GATEWAY] Registration email failed:', mailErr.message);
+      });
 
       return res.json({
         success: true,
@@ -234,6 +211,12 @@ export class AuthController {
 
       emailVerificationStore.delete(normalizedEmail);
 
+      // Dispatch welcome email to verified customer
+      EmailService.sendWelcomeEmail({
+        name: user.name,
+        email: user.email,
+      });
+
       const sessionUser = {
         id: user.id,
         email: user.email,
@@ -292,6 +275,12 @@ export class AuthController {
           wishlist: { create: {} },
         },
         include: { profile: true },
+      });
+
+      // Dispatch welcome email to new customer
+      EmailService.sendWelcomeEmail({
+        name: user.name,
+        email: user.email,
       });
 
       const sessionUser = {
@@ -393,6 +382,12 @@ export class AuthController {
             wishlist: { create: {} },
           },
           include: { profile: true },
+        });
+
+        // Dispatch welcome email to newly registered Google customer
+        EmailService.sendWelcomeEmail({
+          name: user.name,
+          email: user.email,
         });
       } else if (avatarUrl && !user.profile?.avatarUrl) {
         // Update profile avatar if empty
@@ -765,43 +760,13 @@ export class AuthController {
 
       console.log(`[PASSWORD RESET] Code for ${normalizedEmail}: ${resetCode} (Valid for 15m)`);
 
-      // If Resend Email API is configured, dispatch live email
-      if (process.env.RESEND_API_KEY) {
-        try {
-          let fromAddress = process.env.EMAIL_FROM || 'Royal Saree & Fashion <onboarding@resend.dev>';
-          // Resend requires a verified domain; public webmails must use onboarding@resend.dev on free tier
-          if (fromAddress.includes('@gmail.com') || fromAddress.includes('@yahoo.com') || fromAddress.includes('@outlook.com') || fromAddress.includes('@hotmail.com')) {
-            fromAddress = 'Royal Saree & Fashion <onboarding@resend.dev>';
-          }
-
-          console.log(`[EMAIL GATEWAY] Dispatching Resend email to ${normalizedEmail} from ${fromAddress}...`);
-          const mailRes = await fetch('https://api.resend.com/emails', {
-            method: 'POST',
-            headers: {
-              Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              from: fromAddress,
-              to: [normalizedEmail],
-              subject: 'Your Password Reset Code - Royal Saree & Fashion',
-              html: `<div style="font-family:sans-serif;padding:20px;border:1px solid #e5e5e5;border-radius:8px;">
-                <h2 style="color:#4A154B;">Royal Saree &amp; Fashion</h2>
-                <p>Namaste,</p>
-                <p>You requested a password reset for your account. Use the 6-digit code below to set your new password:</p>
-                <div style="font-size:24px;font-weight:bold;letter-spacing:4px;color:#D97706;padding:12px;background:#f9f9f9;text-align:center;border-radius:6px;">${resetCode}</div>
-                <p style="font-size:12px;color:#777;margin-top:16px;">This code is valid for 15 minutes. If you did not request this, please disregard this email.</p>
-              </div>`,
-            }),
-          });
-          const mailResult = await mailRes.json().catch(() => null);
-          console.log(`[EMAIL GATEWAY] Resend API response status ${mailRes.status}:`, mailResult);
-        } catch (mailErr: any) {
-          console.error('[EMAIL GATEWAY] Delivery failed:', mailErr.message);
-        }
-      } else {
-        console.warn('[EMAIL GATEWAY] RESEND_API_KEY not found in api/.env');
-      }
+      // Dispatch live password reset email via EmailService
+      EmailService.sendPasswordResetEmail({
+        email: normalizedEmail,
+        code: resetCode,
+      }).catch((mailErr: any) => {
+        console.error('[EMAIL GATEWAY] Password reset email failed:', mailErr.message);
+      });
 
       return res.json({
         success: true,

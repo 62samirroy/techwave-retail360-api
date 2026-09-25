@@ -3,6 +3,7 @@ import prisma from '../lib/db';
 import { AuthenticatedRequest } from '../types';
 import { InventoryService } from '../services/inventory';
 import { NotificationService } from '../services/notification';
+import { EmailService } from '../services/email';
 
 export class OrdersController {
   static async getAll(req: AuthenticatedRequest, res: Response) {
@@ -139,13 +140,48 @@ export class OrdersController {
         include: { items: true },
       });
 
-      if (status && status !== existingOrder.status && existingOrder.userId) {
-        await NotificationService.createNotification({
-          userId: existingOrder.userId,
-          title: `Order Status: ${status}`,
-          message: `Your Order #${existingOrder.orderNumber} status is now ${status}.`,
-          type: 'ORDER',
-          link: `/track-order?orderId=${existingOrder.orderNumber}`,
+      if (status && status !== existingOrder.status) {
+        if (existingOrder.userId) {
+          await NotificationService.createNotification({
+            userId: existingOrder.userId,
+            title: `Order Status: ${status}`,
+            message: `Your Order #${existingOrder.orderNumber} status is now ${status}.`,
+            type: 'ORDER',
+            link: `/track-order?orderId=${existingOrder.orderNumber}`,
+          });
+        }
+
+        // Email communication to customer regarding status change (DELIVERED, SHIPPED, etc.)
+        EmailService.sendOrderStatusEmail(
+          {
+            orderNumber: updated.orderNumber,
+            customerName: updated.customerName,
+            customerEmail: updated.customerEmail,
+            customerPhone: updated.customerPhone,
+            shippingAddress: updated.shippingAddress,
+            city: updated.city,
+            state: updated.state,
+            pinCode: updated.pinCode,
+            country: updated.country,
+            subtotal: updated.subtotal,
+            shippingFee: updated.shippingFee,
+            tax: updated.tax,
+            total: updated.total,
+            paymentMethod: updated.paymentMethod,
+            paymentStatus: updated.paymentStatus,
+            carrier: updated.carrier,
+            trackingNumber: updated.trackingNumber,
+            items: updated.items.map((it) => ({
+              productName: it.productName,
+              productSku: it.productSku,
+              quantity: it.quantity,
+              unitPrice: it.unitPrice,
+              total: it.total,
+            })),
+          },
+          status
+        ).catch((err) => {
+          console.error('[ORDERS CONTROLLER] Status email dispatch error:', err);
         });
       }
 
