@@ -49,6 +49,38 @@ app.get('/health', (req, res) => {
   });
 });
 
+app.get('/test-gemini', async (req, res) => {
+  const apiKey = process.env.GEMINI_API_KEY || process.env.AI_API_KEY;
+  try {
+    const isBearer = apiKey?.startsWith('ya29.');
+    const url = isBearer
+      ? `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`
+      : `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (isBearer) headers['Authorization'] = `Bearer ${apiKey}`;
+    else headers['x-goog-api-key'] = apiKey || '';
+
+    const googleRes = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        contents: [{ role: 'user', parts: [{ text: 'Hello, what day is today?' }] }],
+      }),
+      signal: AbortSignal.timeout(6000),
+    });
+    const data = await googleRes.json();
+    res.json({
+      status: googleRes.status,
+      ok: googleRes.ok,
+      apiKeyPrefix: apiKey ? apiKey.substring(0, 10) + '...' : 'none',
+      data,
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.listen(PORT, () => {
   console.log('====================================================');
   console.log(`🚀 TechWave Retail360 API Server running on port ${PORT}`);
