@@ -868,4 +868,238 @@ export class EmailService {
       await this.sendOrderConfirmationEmail(order);
     }
   }
+
+  private static getAdminEmail(): string {
+    return process.env.ADMIN_NOTIFICATION_EMAIL || process.env.ADMIN_EMAIL || process.env.SMTP_USER || 'techwavesolutions.dev@gmail.com';
+  }
+
+  /**
+   * 7. Send Admin Notification when a New Customer Registers
+   */
+  static async sendAdminNewCustomerAlert(customer: {
+    name: string;
+    email: string;
+    phone?: string | null;
+  }): Promise<any> {
+    const adminEmail = this.getAdminEmail();
+    const clientUrl = this.getClientUrl();
+    const subject = `👤 [New Customer Alert] ${customer.name} registered on Royal Saree & Fashion`;
+
+    const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${subject}</title>
+</head>
+<body style="margin:0;padding:0;background-color:#FDFBF7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;color:#2D2D2D;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#FDFBF7;padding:30px 10px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:560px;background-color:#FFFFFF;border-radius:14px;border:1px solid #EBE3D5;overflow:hidden;box-shadow:0 4px 18px rgba(0,0,0,0.04);">
+          
+          <tr style="background:#1E293B;text-align:center;">
+            <td style="padding:26px 24px;">
+              <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:#94A3B8;text-transform:uppercase;margin-bottom:4px;">
+                Store Administration
+              </div>
+              <h2 style="color:#FFFFFF;margin:0;font-size:22px;font-family:Georgia,serif;">
+                New Customer Account Created
+              </h2>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding:28px 26px;">
+              <p style="font-size:15px;line-height:1.6;color:#334155;margin:0 0 20px 0;">
+                A new customer has successfully registered and verified their account on <strong>${this.STORE_NAME}</strong>:
+              </p>
+
+              <div style="background-color:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:18px 20px;margin-bottom:24px;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                  <tr>
+                    <td style="padding:6px 0;font-size:14px;color:#64748B;">Customer Name:</td>
+                    <td align="right" style="padding:6px 0;font-size:14px;font-weight:700;color:#0F172A;">${customer.name}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:6px 0;font-size:14px;color:#64748B;">Email Address:</td>
+                    <td align="right" style="padding:6px 0;font-size:14px;font-weight:600;color:#2563EB;">${customer.email}</td>
+                  </tr>
+                  ${
+                    customer.phone
+                      ? `<tr>
+                    <td style="padding:6px 0;font-size:14px;color:#64748B;">Phone:</td>
+                    <td align="right" style="padding:6px 0;font-size:14px;color:#0F172A;">${customer.phone}</td>
+                  </tr>`
+                      : ''
+                  }
+                  <tr>
+                    <td style="padding:6px 0;font-size:14px;color:#64748B;">Registration Time:</td>
+                    <td align="right" style="padding:6px 0;font-size:13px;color:#64748B;">${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</td>
+                  </tr>
+                </table>
+              </div>
+
+              <div style="text-align:center;margin:24px 0 10px 0;">
+                <a href="${clientUrl}/admin/customers" style="display:inline-block;background-color:#0F172A;color:#FFFFFF;font-size:14px;font-weight:600;text-decoration:none;padding:12px 28px;border-radius:24px;box-shadow:0 3px 10px rgba(15,23,42,0.2);">
+                  View Customers in Admin Portal &rarr;
+                </a>
+              </div>
+            </td>
+          </tr>
+
+          <tr style="background-color:#F8FAFC;border-top:1px solid #E2E8F0;text-align:center;">
+            <td style="padding:16px 20px;font-size:11px;color:#94A3B8;">
+              &copy; ${new Date().getFullYear()} ${this.STORE_NAME} Management • TechWave Retail360
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+    `;
+
+    return await this.send({ to: adminEmail, subject, html, category: 'admin-new-customer' });
+  }
+
+  /**
+   * 8. Send Admin Notification when a New Order is Placed
+   */
+  static async sendAdminNewOrderAlert(order: OrderEmailData): Promise<any> {
+    const adminEmail = this.getAdminEmail();
+    const clientUrl = this.getClientUrl();
+    const subject = `🛍️ [New Order Alert] #${order.orderNumber} - ₹${order.total.toLocaleString('en-IN')} by ${order.customerName}`;
+
+    const itemsHtml = order.items
+      .map(
+        (it) => `
+        <tr style="border-bottom:1px solid #E2E8F0;">
+          <td style="padding:10px 6px;font-size:13px;color:#0F172A;">
+            <strong>${it.productName}</strong>
+            ${it.productSku ? `<br/><span style="font-size:11px;color:#64748B;">SKU: ${it.productSku}</span>` : ''}
+          </td>
+          <td align="center" style="padding:10px 6px;font-size:13px;color:#334155;">
+            ${it.quantity}
+          </td>
+          <td align="right" style="padding:10px 6px;font-size:13px;color:#0F172A;font-weight:600;">
+            ₹${it.total.toLocaleString('en-IN')}
+          </td>
+        </tr>
+      `
+      )
+      .join('');
+
+    const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${subject}</title>
+</head>
+<body style="margin:0;padding:0;background-color:#FDFBF7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;color:#2D2D2D;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#FDFBF7;padding:30px 10px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:600px;background-color:#FFFFFF;border-radius:14px;border:1px solid #EBE3D5;overflow:hidden;box-shadow:0 4px 18px rgba(0,0,0,0.04);">
+          
+          <tr style="background:#4A154B;text-align:center;">
+            <td style="padding:28px 24px;">
+              <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:#F6C56F;text-transform:uppercase;margin-bottom:4px;">
+                NEW ORDER RECEIVED
+              </div>
+              <h2 style="color:#FFFFFF;margin:0;font-size:24px;font-family:Georgia,serif;">
+                Order #${order.orderNumber}
+              </h2>
+              <div style="margin-top:8px;font-size:14px;color:#E9D5FF;">
+                Grand Total: <strong style="color:#FFFFFF;font-size:16px;">₹${order.total.toLocaleString('en-IN')}</strong>
+              </div>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding:28px 26px;">
+              <p style="font-size:15px;color:#334155;margin:0 0 18px 0;">
+                A new order has just been placed and requires fulfillment:
+              </p>
+
+              <!-- Customer & Delivery Summary -->
+              <div style="background-color:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:16px 18px;margin-bottom:20px;">
+                <div style="font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#475569;margin-bottom:10px;">
+                  Customer &amp; Shipping Details
+                </div>
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                  <tr>
+                    <td style="padding:4px 0;font-size:13px;color:#64748B;">Customer:</td>
+                    <td align="right" style="padding:4px 0;font-size:13px;font-weight:600;color:#0F172A;">${order.customerName}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:4px 0;font-size:13px;color:#64748B;">Email:</td>
+                    <td align="right" style="padding:4px 0;font-size:13px;color:#2563EB;">${order.customerEmail}</td>
+                  </tr>
+                  ${
+                    order.customerPhone
+                      ? `<tr>
+                    <td style="padding:4px 0;font-size:13px;color:#64748B;">Phone:</td>
+                    <td align="right" style="padding:4px 0;font-size:13px;color:#0F172A;">${order.customerPhone}</td>
+                  </tr>`
+                      : ''
+                  }
+                  <tr>
+                    <td style="padding:4px 0;font-size:13px;color:#64748B;">Delivery Address:</td>
+                    <td align="right" style="padding:4px 0;font-size:13px;color:#0F172A;">${order.shippingAddress}, ${order.city}, ${order.state} - ${order.pinCode}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:4px 0;font-size:13px;color:#64748B;">Payment:</td>
+                    <td align="right" style="padding:4px 0;font-size:13px;font-weight:600;color:#059669;">${order.paymentMethod || 'Online'} (${order.paymentStatus || 'PAID'})</td>
+                  </tr>
+                </table>
+              </div>
+
+              <!-- Ordered Items -->
+              <div style="font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#475569;margin-bottom:8px;">
+                Items to Pack
+              </div>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-bottom:24px;">
+                <thead>
+                  <tr style="border-bottom:1px solid #CBD5E1;color:#64748B;font-size:11px;text-transform:uppercase;">
+                    <th align="left" style="padding:6px;">Item</th>
+                    <th align="center" style="padding:6px;">Qty</th>
+                    <th align="right" style="padding:6px;">Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${itemsHtml}
+                </tbody>
+              </table>
+
+              <!-- CTA -->
+              <div style="text-align:center;margin:24px 0 10px 0;">
+                <a href="${clientUrl}/admin/orders" style="display:inline-block;background-color:#4A154B;color:#FFFFFF;font-size:14px;font-weight:600;text-decoration:none;padding:12px 28px;border-radius:24px;box-shadow:0 3px 10px rgba(74,21,75,0.25);">
+                  Open Order in Admin Dashboard &rarr;
+                </a>
+              </div>
+            </td>
+          </tr>
+
+          <tr style="background-color:#F8FAFC;border-top:1px solid #E2E8F0;text-align:center;">
+            <td style="padding:16px 20px;font-size:11px;color:#94A3B8;">
+              &copy; ${new Date().getFullYear()} ${this.STORE_NAME} • TechWave Retail360 Admin System
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+    `;
+
+    return await this.send({ to: adminEmail, subject, html, category: 'admin-new-order' });
+  }
 }

@@ -270,6 +270,34 @@ export class PaymentsController {
         console.error('[PAYMENTS CONTROLLER] Order confirmation email failed:', err);
       });
 
+      // Dispatch Admin Notification for new order placed
+      EmailService.sendAdminNewOrderAlert({
+        orderNumber: updatedOrder.orderNumber,
+        customerName: updatedOrder.customerName,
+        customerEmail: updatedOrder.customerEmail,
+        customerPhone: updatedOrder.customerPhone,
+        shippingAddress: updatedOrder.shippingAddress,
+        city: updatedOrder.city,
+        state: updatedOrder.state,
+        pinCode: updatedOrder.pinCode,
+        country: updatedOrder.country,
+        subtotal: updatedOrder.subtotal,
+        shippingFee: updatedOrder.shippingFee,
+        tax: updatedOrder.tax,
+        total: updatedOrder.total,
+        paymentMethod: updatedOrder.paymentMethod,
+        paymentStatus: updatedOrder.paymentStatus,
+        items: updatedOrder.items.map((it) => ({
+          productName: it.productName,
+          productSku: it.productSku,
+          quantity: it.quantity,
+          unitPrice: it.unitPrice,
+          total: it.total,
+        })),
+      }).catch((err) => {
+        console.error('[ADMIN ORDER ALERT] Admin order notification failed:', err);
+      });
+
       const whatsappLink = NotificationService.getOrderWhatsAppLink({
         orderNumber: order.orderNumber,
         customerName: order.customerName,

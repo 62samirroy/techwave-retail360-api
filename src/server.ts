@@ -59,5 +59,5 @@ app.listen(PORT, () => {
   console.log('====================================================');
 });
 
-// Reload trigger: Dual-engine email delivery (Direct Nodemailer SMTP + Resend API) active
+// Reload trigger: Admin alerts for new registrations and new orders active!
 export default app;

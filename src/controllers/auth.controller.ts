@@ -217,6 +217,13 @@ export class AuthController {
         email: user.email,
       });
 
+      // Dispatch admin alert for new customer registration
+      EmailService.sendAdminNewCustomerAlert({
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+      }).catch((err) => console.error('[ADMIN ALERT] Failed to send new customer alert:', err));
+
       const sessionUser = {
         id: user.id,
         email: user.email,
@@ -282,6 +289,13 @@ export class AuthController {
         name: user.name,
         email: user.email,
       });
+
+      // Dispatch admin alert for new customer registration
+      EmailService.sendAdminNewCustomerAlert({
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+      }).catch((err) => console.error('[ADMIN ALERT] Failed to send new customer alert:', err));
 
       const sessionUser = {
         id: user.id,
@@ -389,6 +403,13 @@ export class AuthController {
           name: user.name,
           email: user.email,
         });
+
+        // Dispatch admin alert for new customer registration
+        EmailService.sendAdminNewCustomerAlert({
+          name: user.name,
+          email: user.email,
+          phone: user.phone,
+        }).catch((err) => console.error('[ADMIN ALERT] Failed to send new customer alert:', err));
       } else if (avatarUrl && !user.profile?.avatarUrl) {
         // Update profile avatar if empty
         await prisma.profile.upsert({
