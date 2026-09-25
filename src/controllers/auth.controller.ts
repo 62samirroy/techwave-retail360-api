@@ -117,7 +117,9 @@ export class AuthController {
         attempts: 0,
       });
 
-      console.log(`[REGISTER OTP] Verification code for ${normalizedEmail}: ${code}`);
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`[REGISTER OTP] Verification code for ${normalizedEmail}: ${code}`);
+      }
 
       // Dispatch live email via EmailService
       EmailService.sendVerificationCodeEmail({
@@ -470,7 +472,9 @@ export class AuthController {
 
       otpStore.set(cleanPhone, { otp, expiresAt, attempts: 0 });
 
-      console.log(`[AUTH] OTP generated for +91${tenDigit}: ${otp} (expires in 5m)`);
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`[AUTH] OTP generated for +91${tenDigit}: ${otp} (expires in 5m)`);
+      }
 
       let smsDelivered = false;
       let gatewayNotice = '';
@@ -498,6 +502,8 @@ export class AuthController {
         gatewayNotice = 'FAST2SMS_API_KEY not configured in backend';
       }
 
+      const isDev = process.env.NODE_ENV !== 'production';
+
       return res.json({
         success: true,
         message: smsDelivered
@@ -507,8 +513,7 @@ export class AuthController {
             : `Verification code generated for ${cleanPhone}.`,
         smsDelivered,
         gatewayNotice,
-        demoOtp: otp,
-        otpCode: otp,
+        ...(isDev && { demoOtp: otp, otpCode: otp }),
       });
     } catch (error: any) {
       return res.status(500).json({ success: false, message: error.message });
@@ -779,7 +784,9 @@ export class AuthController {
         attempts: 0,
       });
 
-      console.log(`[PASSWORD RESET] Code for ${normalizedEmail}: ${resetCode} (Valid for 15m)`);
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`[PASSWORD RESET] Code for ${normalizedEmail}: ${resetCode} (Valid for 15m)`);
+      }
 
       // Dispatch live password reset email via EmailService
       EmailService.sendPasswordResetEmail({

@@ -52,8 +52,15 @@ export class ReviewsController {
             { customerEmail: req.user.email },
             ...(req.user.phone ? [{ customerPhone: req.user.phone }] : []),
           ],
-          paymentStatus: 'PAID',
-          status: { not: 'CANCELLED' },
+          status: { notIn: ['CANCELLED', 'FAILED'] },
+          AND: [
+            {
+              OR: [
+                { paymentStatus: 'PAID' },
+                { status: 'DELIVERED' },
+              ],
+            },
+          ],
         },
         include: { items: true },
       });
@@ -99,8 +106,15 @@ export class ReviewsController {
             { customerEmail: req.user.email },
             ...(req.user.phone ? [{ customerPhone: req.user.phone }] : []),
           ],
-          paymentStatus: 'PAID',
-          status: { not: 'CANCELLED' },
+          status: { notIn: ['CANCELLED', 'FAILED'] },
+          AND: [
+            {
+              OR: [
+                { paymentStatus: 'PAID' },
+                { status: 'DELIVERED' },
+              ],
+            },
+          ],
         },
         include: { items: true },
       });

@@ -198,18 +198,20 @@ export class CartController {
       const { quantity } = req.body;
       const numQuantity = Number(quantity);
 
-      if (isNaN(numQuantity) || numQuantity <= 0) {
-        await prisma.cartItem.delete({ where: { id: itemId } });
-        return res.json({ success: true, message: 'Item removed from cart' });
-      }
+      const { cart } = await getOrCreateCart(req, res);
 
       const cartItem = await prisma.cartItem.findUnique({
         where: { id: itemId },
         include: { product: true },
       });
 
-      if (!cartItem) {
-        return res.status(404).json({ success: false, message: 'Item not found in cart' });
+      if (!cartItem || cartItem.cartId !== cart.id) {
+        return res.status(404).json({ success: false, message: 'Item not found in your cart' });
+      }
+
+      if (isNaN(numQuantity) || numQuantity <= 0) {
+        await prisma.cartItem.delete({ where: { id: itemId } });
+        return res.json({ success: true, message: 'Item removed from cart' });
       }
 
       if (numQuantity > cartItem.product.stock) {
@@ -233,6 +235,16 @@ export class CartController {
   static async removeItem(req: AuthenticatedRequest, res: Response) {
     try {
       const { itemId } = req.params;
+      const { cart } = await getOrCreateCart(req, res);
+
+      const cartItem = await prisma.cartItem.findUnique({
+        where: { id: itemId },
+      });
+
+      if (!cartItem || cartItem.cartId !== cart.id) {
+        return res.status(404).json({ success: false, message: 'Item not found in your cart' });
+      }
+
       await prisma.cartItem.delete({ where: { id: itemId } });
       return res.json({ success: true, message: 'Item removed from cart' });
     } catch (error: any) {

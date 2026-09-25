@@ -16,22 +16,28 @@ import { AnalyticsController } from '../controllers/analytics.controller';
 import { AIController } from '../controllers/ai.controller';
 import { SettingsController } from '../controllers/settings.controller';
 import { requireAdmin, requireAuth } from '../middleware/auth';
+import { rateLimiter } from '../middleware/rateLimiter';
 
 const router = Router();
 
+// Rate limiters for abuse prevention
+const authLimiter = rateLimiter({ windowMs: 15 * 60 * 1000, max: 20, message: 'Too many authentication attempts. Please try again after 15 minutes.' });
+const otpLimiter = rateLimiter({ windowMs: 10 * 60 * 1000, max: 10, message: 'Too many OTP requests. Please wait a few minutes before trying again.' });
+const paymentLimiter = rateLimiter({ windowMs: 10 * 60 * 1000, max: 30, message: 'Too many payment verification attempts. Please wait.' });
+
 // Auth routes
-router.post('/auth/login', AuthController.login);
-router.post('/auth/register', AuthController.register);
-router.post('/auth/register/send-code', AuthController.sendRegisterCode);
-router.post('/auth/register/verify', AuthController.verifyRegisterCode);
-router.post('/auth/google', AuthController.googleAuth);
-router.post('/auth/phone/send-otp', AuthController.sendPhoneOtp);
-router.post('/auth/phone/verify-otp', AuthController.verifyPhoneOtp);
+router.post('/auth/login', authLimiter, AuthController.login);
+router.post('/auth/register', authLimiter, AuthController.register);
+router.post('/auth/register/send-code', otpLimiter, AuthController.sendRegisterCode);
+router.post('/auth/register/verify', authLimiter, AuthController.verifyRegisterCode);
+router.post('/auth/google', authLimiter, AuthController.googleAuth);
+router.post('/auth/phone/send-otp', otpLimiter, AuthController.sendPhoneOtp);
+router.post('/auth/phone/verify-otp', authLimiter, AuthController.verifyPhoneOtp);
 router.get('/auth/me', AuthController.me);
 router.put('/auth/profile', requireAuth, AuthController.updateProfile);
 router.put('/auth/change-password', requireAuth, AuthController.changePassword);
-router.post('/auth/forgot-password', AuthController.forgotPassword);
-router.post('/auth/reset-password', AuthController.resetPassword);
+router.post('/auth/forgot-password', otpLimiter, AuthController.forgotPassword);
+router.post('/auth/reset-password', authLimiter, AuthController.resetPassword);
 router.post('/auth/logout', AuthController.logout);
 
 // Products routes
@@ -56,7 +62,8 @@ router.delete('/cart', CartController.clearCart);
 
 // Payments & Checkout
 router.post('/payments/razorpay/create-order', PaymentsController.createRazorpayOrder);
-router.post('/payments/razorpay/verify', PaymentsController.verifyPayment);
+router.post('/payments/razorpay/verify', paymentLimiter, PaymentsController.verifyPayment);
+router.post('/payments/cod/confirm', PaymentsController.confirmCod);
 
 // Orders
 router.get('/orders', requireAuth, OrdersController.getAll);

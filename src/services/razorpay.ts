@@ -65,21 +65,38 @@ export class RazorpayService {
   }): boolean {
     const { orderId, paymentId, signature } = params;
 
-    if (
-      signature.startsWith('sim_test_sig_') ||
-      signature === 'sig_verified_mock_checksum' ||
-      paymentId.startsWith('pay_test_')
-    ) {
-      return true;
+    // Allow mock/simulated signatures ONLY in non-production environments when explicitly enabled
+    const allowMock = process.env.NODE_ENV !== 'production' && process.env.ENABLE_MOCK_PAYMENTS === 'true';
+    if (allowMock) {
+      if (
+        signature.startsWith('sim_test_sig_') ||
+        signature === 'sig_verified_mock_checksum' ||
+        paymentId.startsWith('pay_test_')
+      ) {
+        return true;
+      }
     }
 
     try {
+      const secret = this.getKeySecret();
+      if (!secret) {
+        console.error('Razorpay secret key is not configured.');
+        return false;
+      }
+
       const generatedSignature = crypto
-        .createHmac('sha256', this.getKeySecret())
+        .createHmac('sha256', secret)
         .update(`${orderId}|${paymentId}`)
         .digest('hex');
 
-      return generatedSignature === signature;
+      const expectedBuffer = Buffer.from(generatedSignature, 'utf8');
+      const actualBuffer = Buffer.from(signature, 'utf8');
+
+      if (expectedBuffer.length !== actualBuffer.length) {
+        return false;
+      }
+
+      return crypto.timingSafeEqual(expectedBuffer, actualBuffer);
     } catch (err) {
       console.error('Signature verification error:', err);
       return false;

@@ -157,8 +157,8 @@ export class PaymentsController {
         razorpay_signature,
       } = req.body;
 
-      if (!orderId || !razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
-        return res.status(400).json({ success: false, message: 'Missing payment verification parameters.' });
+      if (!orderId) {
+        return res.status(400).json({ success: false, message: 'Order ID is required.' });
       }
 
       const order = await prisma.order.findUnique({
@@ -170,8 +170,13 @@ export class PaymentsController {
         return res.status(404).json({ success: false, message: 'Order record not found.' });
       }
 
-      // Idempotency: If already paid and confirmed, return safely without deducting stock again
-      if (order.paymentStatus === 'PAID') {
+      // Check ownership: ensure user can only verify their own order
+      if (order.userId && req.user && order.userId !== req.user.id && req.user.role !== 'ADMIN') {
+        return res.status(403).json({ success: false, message: 'Unauthorized. You do not own this order.' });
+      }
+
+      // Idempotency: If already confirmed, return safely without deducting stock again
+      if (order.status === 'CONFIRMED' || order.paymentStatus === 'PAID') {
         const whatsappLink = NotificationService.getOrderWhatsAppLink({
           orderNumber: order.orderNumber,
           customerName: order.customerName,
@@ -180,8 +185,26 @@ export class PaymentsController {
         });
         return res.json({
           success: true,
-          message: 'Payment already verified and confirmed',
+          message: 'Order is already verified and confirmed',
           data: { order, whatsappLink },
+        });
+      }
+
+      // Seamless COD handling
+      if (order.paymentMethod === 'COD') {
+        return PaymentsController.processCodConfirmation(order, res);
+      }
+
+      // Razorpay Payment Verification
+      if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+        return res.status(400).json({ success: false, message: 'Missing Razorpay payment verification parameters.' });
+      }
+
+      // Prevent cross-order substitution: Razorpay order ID MUST match this order's razorpayOrderId
+      if (order.razorpayOrderId && order.razorpayOrderId !== razorpay_order_id) {
+        return res.status(400).json({
+          success: false,
+          message: 'Razorpay Order ID mismatch. Payment verification failed.',
         });
       }
 
@@ -313,5 +336,146 @@ export class PaymentsController {
     } catch (error: any) {
       return res.status(500).json({ success: false, message: error.message });
     }
+  }
+
+  /**
+   * Dedicated endpoint to confirm Cash-on-Delivery (COD) orders safely
+   */
+  static async confirmCod(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { orderId } = req.body;
+      if (!orderId) {
+        return res.status(400).json({ success: false, message: 'Order ID is required.' });
+      }
+
+      const order = await prisma.order.findUnique({
+        where: { id: orderId },
+        include: { items: true },
+      });
+
+      if (!order) {
+        return res.status(404).json({ success: false, message: 'Order record not found.' });
+      }
+
+      if (order.userId && req.user && order.userId !== req.user.id && req.user.role !== 'ADMIN') {
+        return res.status(403).json({ success: false, message: 'Unauthorized. You do not own this order.' });
+      }
+
+      if (order.status === 'CONFIRMED') {
+        const whatsappLink = NotificationService.getOrderWhatsAppLink({
+          orderNumber: order.orderNumber,
+          customerName: order.customerName,
+          total: order.total,
+          shippingAddress: `${order.shippingAddress}, ${order.city}`,
+        });
+        return res.json({
+          success: true,
+          message: 'COD Order is already confirmed.',
+          data: { order, whatsappLink },
+        });
+      }
+
+      return PaymentsController.processCodConfirmation(order, res);
+    } catch (error: any) {
+      return res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  private static async processCodConfirmation(order: any, res: Response) {
+    const updatedOrder = await prisma.order.update({
+      where: { id: order.id },
+      data: {
+        status: 'CONFIRMED',
+        paymentStatus: 'PENDING',
+        paymentMethod: 'COD',
+      },
+      include: { items: true },
+    });
+
+    await InventoryService.deductStock(
+      order.items.map((it: any) => ({
+        productId: it.productId,
+        quantity: it.quantity,
+      })),
+      order.orderNumber
+    );
+
+    if (order.userId) {
+      await NotificationService.createNotification({
+        userId: order.userId,
+        title: 'COD Order Placed!',
+        message: `Your Cash on Delivery Order #${order.orderNumber} is confirmed. We are packing your sarees!`,
+        type: 'ORDER',
+        link: `/track-order?orderId=${order.orderNumber}`,
+      });
+    }
+
+    // Dispatch confirmation emails
+    EmailService.sendOrderConfirmationEmail({
+      orderNumber: updatedOrder.orderNumber,
+      customerName: updatedOrder.customerName,
+      customerEmail: updatedOrder.customerEmail,
+      customerPhone: updatedOrder.customerPhone,
+      shippingAddress: updatedOrder.shippingAddress,
+      city: updatedOrder.city,
+      state: updatedOrder.state,
+      pinCode: updatedOrder.pinCode,
+      country: updatedOrder.country,
+      subtotal: updatedOrder.subtotal,
+      shippingFee: updatedOrder.shippingFee,
+      tax: updatedOrder.tax,
+      total: updatedOrder.total,
+      paymentMethod: 'COD',
+      paymentStatus: 'PENDING',
+      items: updatedOrder.items.map((it: any) => ({
+        productName: it.productName,
+        productSku: it.productSku,
+        quantity: it.quantity,
+        unitPrice: it.unitPrice,
+        total: it.total,
+      })),
+    }).catch((err) => {
+      console.error('[PAYMENTS CONTROLLER] COD Order confirmation email failed:', err);
+    });
+
+    EmailService.sendAdminNewOrderAlert({
+      orderNumber: updatedOrder.orderNumber,
+      customerName: updatedOrder.customerName,
+      customerEmail: updatedOrder.customerEmail,
+      customerPhone: updatedOrder.customerPhone,
+      shippingAddress: updatedOrder.shippingAddress,
+      city: updatedOrder.city,
+      state: updatedOrder.state,
+      pinCode: updatedOrder.pinCode,
+      country: updatedOrder.country,
+      subtotal: updatedOrder.subtotal,
+      shippingFee: updatedOrder.shippingFee,
+      tax: updatedOrder.tax,
+      total: updatedOrder.total,
+      paymentMethod: 'COD',
+      paymentStatus: 'PENDING',
+      items: updatedOrder.items.map((it: any) => ({
+        productName: it.productName,
+        productSku: it.productSku,
+        quantity: it.quantity,
+        unitPrice: it.unitPrice,
+        total: it.total,
+      })),
+    }).catch((err) => {
+      console.error('[ADMIN ORDER ALERT] Admin COD order notification failed:', err);
+    });
+
+    const whatsappLink = NotificationService.getOrderWhatsAppLink({
+      orderNumber: order.orderNumber,
+      customerName: order.customerName,
+      total: order.total,
+      shippingAddress: `${order.shippingAddress}, ${order.city}`,
+    });
+
+    return res.json({
+      success: true,
+      message: 'Cash on Delivery order placed successfully',
+      data: { order: updatedOrder, whatsappLink },
+    });
   }
 }

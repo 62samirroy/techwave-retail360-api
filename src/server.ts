@@ -3,7 +3,7 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import routes from './routes';
-import { authenticate } from './middleware/auth';
+import { authenticate, requireAdmin } from './middleware/auth';
 
 dotenv.config();
 
@@ -11,15 +11,44 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3000';
 
-// CORS configuration allowing cookies and headers from frontend
+// Security Headers
+app.disable('x-powered-by');
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  next();
+});
+
+// CORS configuration allowing cookies and headers from trusted frontend clients
+const allowedOrigins = [
+  CLIENT_URL,
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:3001',
+];
+
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow localhost and specified frontend clients
-      if (!origin || origin.startsWith('http://localhost') || origin === CLIENT_URL) {
-        callback(null, true);
+      // Allow requests with no origin (mobile apps, server-to-server, curl)
+      if (!origin) return callback(null, true);
+
+      if (process.env.NODE_ENV === 'production') {
+        if (allowedOrigins.includes(origin)) {
+          return callback(null, true);
+        }
+        return callback(new Error('Blocked by CORS policy: Origin unauthorized'));
       } else {
-        callback(null, true);
+        if (
+          origin.startsWith('http://localhost') ||
+          origin.startsWith('http://127.0.0.1') ||
+          allowedOrigins.includes(origin)
+        ) {
+          return callback(null, true);
+        }
+        return callback(null, true);
       }
     },
     credentials: true,
@@ -49,7 +78,12 @@ app.get('/health', (req, res) => {
   });
 });
 
-app.get('/test-gemini', async (req, res) => {
+// Secure Diagnostic Endpoint (Admin only in development or authenticated)
+app.get('/test-gemini', authenticate, async (req: any, res) => {
+  if (process.env.NODE_ENV === 'production' && req.user?.role !== 'ADMIN') {
+    return res.status(403).json({ success: false, message: 'Forbidden' });
+  }
+
   const apiKey = process.env.GEMINI_API_KEY || process.env.AI_API_KEY;
   try {
     const isBearer = apiKey?.startsWith('ya29.');
@@ -73,7 +107,7 @@ app.get('/test-gemini', async (req, res) => {
     res.json({
       status: googleRes.status,
       ok: googleRes.ok,
-      apiKeyPrefix: apiKey ? apiKey.substring(0, 10) + '...' : 'none',
+      hasKey: !!apiKey,
       data,
     });
   } catch (err: any) {
@@ -81,15 +115,33 @@ app.get('/test-gemini', async (req, res) => {
   }
 });
 
+// Global Error Handler
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error('[UNCAUGHT API ERROR]:', err);
+  if (res.headersSent) {
+    return next(err);
+  }
+  const status = err.status || err.statusCode || 500;
+  const message =
+    process.env.NODE_ENV === 'production' && status === 500
+      ? 'An unexpected error occurred. Please contact store support.'
+      : err.message || 'Internal Server Error';
+
+  res.status(status).json({
+    success: false,
+    message,
+    ...(process.env.NODE_ENV !== 'production' && { stack: err.stack }),
+  });
+});
+
 app.listen(PORT, () => {
   console.log('====================================================');
   console.log(`🚀 TechWave Retail360 API Server running on port ${PORT}`);
   console.log(`🔗 Endpoint Base: http://localhost:${PORT}/api`);
   console.log(`✨ Demo Business: Royal Saree & Fashion`);
-  console.log(`👤 Admin: admin@royal.techwavesolutions.dev (pw: admin123)`);
-  console.log(`🛍️ Customer: priya.sharma@example.com (pw: customer123)`);
+  console.log(`👤 Admin: admin@royal.techwavesolutions.dev`);
+  console.log(`🛍️ Customer: priya.sharma@example.com`);
   console.log('====================================================');
 });
 
-// Reload trigger: Admin alerts for new registrations and new orders active!
 export default app;

@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import prisma from '../lib/db';
 import { slugify } from '../lib/utils';
+import { AuthenticatedRequest } from '../types';
 
 export class ProductsController {
   static async getAll(req: Request, res: Response) {
@@ -14,16 +15,16 @@ export class ProductsController {
       const featured = req.query.featured === 'true';
       const bestseller = req.query.bestseller === 'true';
       const statusParam = (req.query.status as string) || '';
-      const isAdmin = req.query.admin === 'true';
+      const isActualAdmin = (req as AuthenticatedRequest).user?.role === 'ADMIN';
       const page = Math.max(1, Number(req.query.page) || 1);
       const limit = Math.max(1, Math.min(100, Number(req.query.limit) || 12));
       const skip = (page - 1) * limit;
 
       const where: any = {};
 
-      if (statusParam && statusParam.toUpperCase() !== 'ALL') {
+      if (isActualAdmin && statusParam && statusParam.toUpperCase() !== 'ALL') {
         where.status = statusParam.toUpperCase();
-      } else if (!statusParam && !isAdmin) {
+      } else if (!isActualAdmin) {
         where.status = 'ACTIVE';
       }
 

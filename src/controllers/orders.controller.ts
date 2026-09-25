@@ -223,7 +223,42 @@ export class OrdersController {
         });
       }
 
-      return res.json({ success: true, data: order });
+      const authUser = (req as AuthenticatedRequest).user;
+      const isOwner = authUser && (authUser.id === order.userId || authUser.role === 'ADMIN');
+      const isIdentifierMatched = identifier && (
+        order.customerEmail.toLowerCase().includes(identifier) ||
+        order.customerPhone.includes(identifier)
+      );
+
+      if (isOwner || isIdentifierMatched) {
+        return res.json({ success: true, data: order });
+      }
+
+      // Anonymous lookup: Mask PII to protect customer privacy
+      const maskedEmail = order.customerEmail.replace(
+        /^(.)(.*)(@.*)$/,
+        (_, a, b, c) => `${a}${'*'.repeat(Math.min(5, Math.max(2, b.length)))}${c}`
+      );
+      const maskedPhone =
+        order.customerPhone.length > 4
+          ? `${'*'.repeat(order.customerPhone.length - 4)}${order.customerPhone.slice(-4)}`
+          : '******';
+      const maskedAddress = order.city ? `Protected Address, ${order.city}, ${order.state}` : 'Protected Address';
+
+      const nameParts = order.customerName.trim().split(' ');
+      const maskedName = nameParts.length > 1
+        ? `${nameParts[0]} ${nameParts[1][0]}.`
+        : nameParts[0];
+
+      const sanitizedOrder = {
+        ...order,
+        customerName: maskedName,
+        customerEmail: maskedEmail,
+        customerPhone: maskedPhone,
+        shippingAddress: maskedAddress,
+      };
+
+      return res.json({ success: true, data: sanitizedOrder });
     } catch (error: any) {
       return res.status(500).json({ success: false, message: error.message });
     }

@@ -443,14 +443,45 @@ DO $$ BEGIN
     );
 EXCEPTION WHEN duplicate_object THEN null; END $$;
 
--- Notifications RLS Policies
+-- Customer Notifications RLS Policies
 DO $$ BEGIN
     CREATE POLICY "Users can view and update own notifications" ON "Notification" FOR ALL USING (auth.uid() = "userId");
 EXCEPTION WHEN duplicate_object THEN null; END $$;
 
--- Service Role Full Access
+-- Customer Inquiries RLS Policies
+ALTER TABLE "Inquiry" ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+    CREATE POLICY "Public can submit inquiries" ON "Inquiry" FOR INSERT WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+    CREATE POLICY "Users can view own inquiries" ON "Inquiry" FOR SELECT USING (auth.uid() = "userId");
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+-- AI Chat RLS Policies
+ALTER TABLE "AiConversation" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "AiMessage" ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+    CREATE POLICY "Users can manage own AI conversations" ON "AiConversation" FOR ALL USING (auth.uid() = "userId" OR "userId" IS NULL);
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+    CREATE POLICY "Users can manage AI messages" ON "AiMessage" FOR ALL USING (
+        EXISTS (SELECT 1 FROM "AiConversation" WHERE "AiConversation"."id" = "AiMessage"."conversationId" AND ("AiConversation"."userId" = auth.uid() OR "AiConversation"."userId" IS NULL))
+    );
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+-- Service Role / Admin Full Access Policies
 DO $$ BEGIN
     CREATE POLICY "Service role full access to Inventory" ON "Inventory" FOR ALL USING (auth.jwt() ->> 'role' = 'service_role');
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+    CREATE POLICY "Service role full access to Orders" ON "Order" FOR ALL USING (auth.jwt() ->> 'role' = 'service_role');
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+    CREATE POLICY "Service role full access to Inquiries" ON "Inquiry" FOR ALL USING (auth.jwt() ->> 'role' = 'service_role');
 EXCEPTION WHEN duplicate_object THEN null; END $$;
 
 -- 7. Seed Core Platform Settings
