@@ -43,9 +43,24 @@ export class ProductsController {
       }
 
       if (minPrice !== undefined || maxPrice !== undefined) {
-        where.discountPrice = {};
-        if (minPrice !== undefined) where.discountPrice.gte = minPrice;
-        if (maxPrice !== undefined) where.discountPrice.lte = maxPrice;
+        where.AND = where.AND || [];
+        where.AND.push({
+          OR: [
+            {
+              discountPrice: {
+                ...(minPrice !== undefined ? { gte: minPrice } : {}),
+                ...(maxPrice !== undefined ? { lte: maxPrice } : {}),
+              },
+            },
+            {
+              discountPrice: null,
+              price: {
+                ...(minPrice !== undefined ? { gte: minPrice } : {}),
+                ...(maxPrice !== undefined ? { lte: maxPrice } : {}),
+              },
+            },
+          ],
+        });
       }
 
       if (inStock) where.stock = { gt: 0 };

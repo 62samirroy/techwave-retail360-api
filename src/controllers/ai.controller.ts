@@ -11,7 +11,7 @@ export class AIController {
         return res.status(400).json({ success: false, message: 'Message text is required' });
       }
 
-      const aiResult = await AIService.handleCustomerChat(message, history);
+      const aiResult = await AIService.handleCustomerChat(message, history, req.user);
 
       let convId = conversationId;
       try {

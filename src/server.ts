@@ -59,4 +59,5 @@ app.listen(PORT, () => {
   console.log('====================================================');
 });
 
+// Reload trigger: Manual code entry only, demoCode removed from responses
 export default app;

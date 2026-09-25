@@ -90,8 +90,10 @@ export class OrdersController {
         return res.status(404).json({ success: false, message: 'Order not found' });
       }
 
-      if (req.user && req.user.role !== 'ADMIN' && order.userId && order.userId !== req.user.id) {
-        return res.status(403).json({ success: false, message: 'Unauthorized to view this order' });
+      if (order.userId) {
+        if (!req.user || (req.user.role !== 'ADMIN' && req.user.id !== order.userId)) {
+          return res.status(403).json({ success: false, message: 'Unauthorized to view this order. Please sign in with the ordering account.' });
+        }
       }
 
       return res.json({ success: true, data: order });

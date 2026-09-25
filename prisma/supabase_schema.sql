@@ -352,6 +352,19 @@ ALTER TABLE "ProductImage" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "ProductAttribute" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "Review" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "Setting" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "User" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "Profile" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "Address" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "Order" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "OrderItem" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "Payment" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "Cart" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "CartItem" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "Wishlist" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "WishlistItem" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "Notification" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "Inventory" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "InventoryTransaction" ENABLE ROW LEVEL SECURITY;
 
 -- Public Read Policies
 DO $$ BEGIN
@@ -376,6 +389,68 @@ EXCEPTION WHEN duplicate_object THEN null; END $$;
 
 DO $$ BEGIN
     CREATE POLICY "Public read for store settings" ON "Setting" FOR SELECT USING (true);
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+-- Customer User & Profile RLS Policies
+DO $$ BEGIN
+    CREATE POLICY "Users can only read own record" ON "User" FOR SELECT USING (auth.uid() = id);
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+    CREATE POLICY "Users can only update own profile" ON "Profile" FOR ALL USING (auth.uid() = "userId");
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+-- Customer Saved Address RLS Policies
+DO $$ BEGIN
+    CREATE POLICY "Users can manage own addresses" ON "Address" FOR ALL USING (auth.uid() = "userId");
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+-- Customer Orders & Payment RLS Policies
+DO $$ BEGIN
+    CREATE POLICY "Users can view own orders" ON "Order" FOR SELECT USING (auth.uid() = "userId");
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+    CREATE POLICY "Users can view own order items" ON "OrderItem" FOR SELECT USING (
+        EXISTS (SELECT 1 FROM "Order" WHERE "Order"."id" = "OrderItem"."orderId" AND "Order"."userId" = auth.uid())
+    );
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+    CREATE POLICY "Users can view own payments" ON "Payment" FOR SELECT USING (
+        EXISTS (SELECT 1 FROM "Order" WHERE "Order"."id" = "Payment"."orderId" AND "Order"."userId" = auth.uid())
+    );
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+-- Wishlist & Cart RLS Policies
+DO $$ BEGIN
+    CREATE POLICY "Users can manage own wishlist" ON "Wishlist" FOR ALL USING (auth.uid() = "userId");
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+    CREATE POLICY "Users can manage own wishlist items" ON "WishlistItem" FOR ALL USING (
+        EXISTS (SELECT 1 FROM "Wishlist" WHERE "Wishlist"."id" = "WishlistItem"."wishlistId" AND "Wishlist"."userId" = auth.uid())
+    );
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+    CREATE POLICY "Users can manage own cart" ON "Cart" FOR ALL USING (auth.uid() = "userId");
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+    CREATE POLICY "Users can manage own cart items" ON "CartItem" FOR ALL USING (
+        EXISTS (SELECT 1 FROM "Cart" WHERE "Cart"."id" = "CartItem"."cartId" AND "Cart"."userId" = auth.uid())
+    );
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+-- Notifications RLS Policies
+DO $$ BEGIN
+    CREATE POLICY "Users can view and update own notifications" ON "Notification" FOR ALL USING (auth.uid() = "userId");
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+-- Service Role Full Access
+DO $$ BEGIN
+    CREATE POLICY "Service role full access to Inventory" ON "Inventory" FOR ALL USING (auth.jwt() ->> 'role' = 'service_role');
 EXCEPTION WHEN duplicate_object THEN null; END $$;
 
 -- 7. Seed Core Platform Settings

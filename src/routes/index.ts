@@ -10,6 +10,8 @@ import { CustomersController } from '../controllers/customers.controller';
 import { InquiriesController } from '../controllers/inquiries.controller';
 import { ReviewsController } from '../controllers/reviews.controller';
 import { WishlistController } from '../controllers/wishlist.controller';
+import { AddressesController } from '../controllers/addresses.controller';
+import { NotificationsController } from '../controllers/notifications.controller';
 import { AnalyticsController } from '../controllers/analytics.controller';
 import { AIController } from '../controllers/ai.controller';
 import { SettingsController } from '../controllers/settings.controller';
@@ -20,7 +22,16 @@ const router = Router();
 // Auth routes
 router.post('/auth/login', AuthController.login);
 router.post('/auth/register', AuthController.register);
+router.post('/auth/register/send-code', AuthController.sendRegisterCode);
+router.post('/auth/register/verify', AuthController.verifyRegisterCode);
+router.post('/auth/google', AuthController.googleAuth);
+router.post('/auth/phone/send-otp', AuthController.sendPhoneOtp);
+router.post('/auth/phone/verify-otp', AuthController.verifyPhoneOtp);
 router.get('/auth/me', AuthController.me);
+router.put('/auth/profile', requireAuth, AuthController.updateProfile);
+router.put('/auth/change-password', requireAuth, AuthController.changePassword);
+router.post('/auth/forgot-password', AuthController.forgotPassword);
+router.post('/auth/reset-password', AuthController.resetPassword);
 router.post('/auth/logout', AuthController.logout);
 
 // Products routes
@@ -53,6 +64,18 @@ router.get('/orders/track', OrdersController.track);
 router.get('/orders/:id', OrdersController.getById);
 router.patch('/orders/:id', requireAdmin, OrdersController.update);
 
+// Addresses (Saved delivery addresses)
+router.get('/addresses', requireAuth, AddressesController.getAll);
+router.post('/addresses', requireAuth, AddressesController.create);
+router.put('/addresses/:id', requireAuth, AddressesController.update);
+router.delete('/addresses/:id', requireAuth, AddressesController.delete);
+router.patch('/addresses/:id/default', requireAuth, AddressesController.setDefault);
+
+// Notifications
+router.get('/notifications', requireAuth, NotificationsController.getAll);
+router.patch('/notifications/:id/read', requireAuth, NotificationsController.markRead);
+router.patch('/notifications/read-all', requireAuth, NotificationsController.markAllRead);
+
 // Inventory
 router.get('/inventory', requireAdmin, InventoryController.getAll);
 router.post('/inventory/adjust', requireAdmin, InventoryController.adjust);
@@ -68,11 +91,16 @@ router.patch('/inquiries/:id', requireAdmin, InquiriesController.update);
 
 // Reviews
 router.get('/reviews', ReviewsController.getByProduct);
-router.post('/reviews', ReviewsController.create);
+router.get('/reviews/eligibility', ReviewsController.checkEligibility);
+router.post('/reviews', requireAuth, ReviewsController.create);
+router.get('/admin/reviews', requireAdmin, ReviewsController.getAllAdmin);
+router.patch('/admin/reviews/:id', requireAdmin, ReviewsController.updateStatus);
+router.delete('/admin/reviews/:id', requireAdmin, ReviewsController.delete);
 
 // Wishlist
 router.get('/wishlist', WishlistController.getWishlist);
 router.post('/wishlist', WishlistController.toggle);
+router.post('/wishlist/move-to-cart', requireAuth, WishlistController.moveToCart);
 
 // Analytics
 router.get('/analytics', requireAdmin, AnalyticsController.getSummary);

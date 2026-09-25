@@ -143,6 +143,30 @@ export class PaymentsController {
         return res.status(400).json({ success: false, message: 'Missing payment verification parameters.' });
       }
 
+      const order = await prisma.order.findUnique({
+        where: { id: orderId },
+        include: { items: true },
+      });
+
+      if (!order) {
+        return res.status(404).json({ success: false, message: 'Order record not found.' });
+      }
+
+      // Idempotency: If already paid and confirmed, return safely without deducting stock again
+      if (order.paymentStatus === 'PAID') {
+        const whatsappLink = NotificationService.getOrderWhatsAppLink({
+          orderNumber: order.orderNumber,
+          customerName: order.customerName,
+          total: order.total,
+          shippingAddress: `${order.shippingAddress}, ${order.city}`,
+        });
+        return res.json({
+          success: true,
+          message: 'Payment already verified and confirmed',
+          data: { order, whatsappLink },
+        });
+      }
+
       const isValid = RazorpayService.verifyPaymentSignature({
         orderId: razorpay_order_id,
         paymentId: razorpay_payment_id,
@@ -156,15 +180,6 @@ export class PaymentsController {
         });
 
         return res.status(400).json({ success: false, message: 'Invalid payment signature. Verification failed.' });
-      }
-
-      const order = await prisma.order.findUnique({
-        where: { id: orderId },
-        include: { items: true },
-      });
-
-      if (!order) {
-        return res.status(404).json({ success: false, message: 'Order record not found.' });
       }
 
       const updatedOrder = await prisma.order.update({
@@ -199,13 +214,15 @@ export class PaymentsController {
         order.orderNumber
       );
 
-      await NotificationService.createNotification({
-        userId: order.userId,
-        title: 'Order Confirmed!',
-        message: `Your payment for Order #${order.orderNumber} was confirmed. We are packing your sarees!`,
-        type: 'PAYMENT',
-        link: `/track-order?orderId=${order.orderNumber}`,
-      });
+      if (order.userId) {
+        await NotificationService.createNotification({
+          userId: order.userId,
+          title: 'Order Confirmed!',
+          message: `Your payment for Order #${order.orderNumber} was confirmed. We are packing your sarees!`,
+          type: 'PAYMENT',
+          link: `/track-order?orderId=${order.orderNumber}`,
+        });
+      }
 
       const whatsappLink = NotificationService.getOrderWhatsAppLink({
         orderNumber: order.orderNumber,

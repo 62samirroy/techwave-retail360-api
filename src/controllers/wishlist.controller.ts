@@ -74,4 +74,86 @@ export class WishlistController {
       return res.status(500).json({ success: false, message: error.message });
     }
   }
+
+  static async moveToCart(req: AuthenticatedRequest, res: Response) {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ success: false, message: 'Please sign in to manage your cart' });
+      }
+
+      const { productId } = req.body;
+      if (!productId) {
+        return res.status(400).json({ success: false, message: 'Product ID is required' });
+      }
+
+      const product = await prisma.product.findUnique({
+        where: { id: productId },
+      });
+
+      if (!product || product.status !== 'ACTIVE') {
+        return res.status(400).json({ success: false, message: 'Product is unavailable' });
+      }
+
+      if (product.stock <= 0) {
+        return res.status(400).json({ success: false, message: 'Sorry, this saree is currently out of stock.' });
+      }
+
+      // Ensure user cart exists
+      let cart = await prisma.cart.findUnique({
+        where: { userId: req.user.id },
+      });
+
+      if (!cart) {
+        cart = await prisma.cart.create({
+          data: { userId: req.user.id },
+        });
+      }
+
+      const price = product.discountPrice || product.price;
+
+      // Add to cart or increment
+      const existingCartItem = await prisma.cartItem.findUnique({
+        where: {
+          cartId_productId: {
+            cartId: cart.id,
+            productId,
+          },
+        },
+      });
+
+      if (existingCartItem) {
+        await prisma.cartItem.update({
+          where: { id: existingCartItem.id },
+          data: { quantity: existingCartItem.quantity + 1 },
+        });
+      } else {
+        await prisma.cartItem.create({
+          data: {
+            cartId: cart.id,
+            productId,
+            quantity: 1,
+            price,
+          },
+        });
+      }
+
+      // Remove from wishlist
+      const wishlist = await prisma.wishlist.findUnique({
+        where: { userId: req.user.id },
+      });
+
+      if (wishlist) {
+        await prisma.wishlistItem.deleteMany({
+          where: { wishlistId: wishlist.id, productId },
+        });
+      }
+
+      return res.json({
+        success: true,
+        message: 'Moved item to your cart',
+      });
+    } catch (error: any) {
+      return res.status(500).json({ success: false, message: error.message });
+    }
+  }
 }
