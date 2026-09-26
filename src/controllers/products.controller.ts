@@ -228,9 +228,9 @@ export class ProductsController {
           images: {
             create: (images || []).map((img: any, idx: number) => ({
               url: typeof img === 'string' ? img : img.url,
-              altText: `${name} image`,
-              isPrimary: idx === 0,
-              sortOrder: idx,
+              altText: (typeof img === 'object' && img.altText) ? img.altText : `${name} image`,
+              isPrimary: typeof img === 'object' && img.isPrimary !== undefined ? Boolean(img.isPrimary) : idx === 0,
+              sortOrder: typeof img === 'object' && img.sortOrder !== undefined ? Number(img.sortOrder) : idx,
             })),
           },
           attributes: {
@@ -288,7 +288,24 @@ export class ProductsController {
         isFeatured,
         isBestseller,
         tags,
+        images,
       } = req.body;
+
+      // Update product images if provided
+      if (Array.isArray(images)) {
+        await prisma.productImage.deleteMany({ where: { productId: id } });
+        if (images.length > 0) {
+          await prisma.productImage.createMany({
+            data: images.map((img: any, idx: number) => ({
+              productId: id,
+              url: typeof img === 'string' ? img : img.url,
+              altText: (typeof img === 'object' && img.altText) ? img.altText : `${name || existing.name} image`,
+              isPrimary: typeof img === 'object' && img.isPrimary !== undefined ? Boolean(img.isPrimary) : idx === 0,
+              sortOrder: typeof img === 'object' && img.sortOrder !== undefined ? Number(img.sortOrder) : idx,
+            })),
+          });
+        }
+      }
 
       const numStock = stock !== undefined ? Number(stock) : existing.stock;
       const stockDiff = numStock - existing.stock;
@@ -310,7 +327,7 @@ export class ProductsController {
           ...(isBestseller !== undefined && { isBestseller: Boolean(isBestseller) }),
           ...(tags !== undefined && { tags }),
         },
-        include: { category: true, images: true, attributes: true },
+        include: { category: true, images: { orderBy: { sortOrder: 'asc' } }, attributes: true },
       });
 
       if (stockDiff !== 0) {

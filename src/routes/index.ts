@@ -15,6 +15,7 @@ import { NotificationsController } from '../controllers/notifications.controller
 import { AnalyticsController } from '../controllers/analytics.controller';
 import { AIController } from '../controllers/ai.controller';
 import { SettingsController } from '../controllers/settings.controller';
+import { UploadController } from '../controllers/upload.controller';
 import { requireAdmin, requireAuth } from '../middleware/auth';
 import { rateLimiter } from '../middleware/rateLimiter';
 
@@ -119,5 +120,8 @@ router.post('/ai/business', requireAdmin, AIController.businessChat);
 // Settings
 router.get('/settings', SettingsController.getSettings);
 router.put('/settings', requireAdmin, SettingsController.updateSettings);
+
+// Media / Image Upload
+router.post('/upload', UploadController.upload);
 
 export default router;
