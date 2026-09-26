@@ -20,32 +20,46 @@ export class ProductsController {
       const limit = Math.max(1, Math.min(100, Number(req.query.limit) || 12));
       const skip = (page - 1) * limit;
 
-      const where: any = {};
+      const andConditions: any[] = [];
+      const isUuid = (val: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
 
       if (isActualAdmin && statusParam && statusParam.toUpperCase() !== 'ALL') {
-        where.status = statusParam.toUpperCase();
+        andConditions.push({ status: statusParam.toUpperCase() });
       } else if (!isActualAdmin) {
-        where.status = 'ACTIVE';
+        andConditions.push({ status: 'ACTIVE' });
       }
 
       if (search) {
-        where.OR = [
-          { name: { contains: search } },
-          { description: { contains: search } },
-          { tags: { contains: search } },
-          { sku: { contains: search } },
-        ];
+        andConditions.push({
+          OR: [
+            { name: { contains: search, mode: 'insensitive' } },
+            { description: { contains: search, mode: 'insensitive' } },
+            { tags: { contains: search, mode: 'insensitive' } },
+            { sku: { contains: search, mode: 'insensitive' } },
+          ],
+        });
       }
 
       if (category) {
-        where.category = {
-          OR: [{ slug: category }, { id: category }, { name: { contains: category } }],
-        };
+        if (isUuid(category)) {
+          andConditions.push({
+            OR: [
+              { categoryId: category },
+              { category: { slug: category } },
+            ],
+          });
+        } else {
+          andConditions.push({
+            OR: [
+              { category: { slug: category } },
+              { category: { name: { contains: category, mode: 'insensitive' } } },
+            ],
+          });
+        }
       }
 
       if (minPrice !== undefined || maxPrice !== undefined) {
-        where.AND = where.AND || [];
-        where.AND.push({
+        andConditions.push({
           OR: [
             {
               discountPrice: {
@@ -64,9 +78,11 @@ export class ProductsController {
         });
       }
 
-      if (inStock) where.stock = { gt: 0 };
-      if (featured) where.isFeatured = true;
-      if (bestseller) where.isBestseller = true;
+      if (inStock) andConditions.push({ stock: { gt: 0 } });
+      if (featured) andConditions.push({ isFeatured: true });
+      if (bestseller) andConditions.push({ isBestseller: true });
+
+      const where = andConditions.length > 0 ? { AND: andConditions } : {};
 
       let orderBy: any = { createdAt: 'desc' };
       if (sort === 'price-asc') orderBy = { price: 'asc' };

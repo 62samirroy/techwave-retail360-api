@@ -68,7 +68,7 @@ app.use('/api', authenticate);
 app.use('/api', routes);
 
 // System Health Check
-app.get('/health', (req, res) => {
+const healthHandler = (req: express.Request, res: express.Response) => {
   res.json({
     status: 'ok',
     service: 'TechWave Retail360 API',
@@ -76,7 +76,9 @@ app.get('/health', (req, res) => {
     uptime: process.uptime(),
     timestamp: new Date().toISOString(),
   });
-});
+};
+app.get('/health', healthHandler);
+app.get('/api/health', healthHandler);
 
 // Secure Diagnostic Endpoint (Admin only in development or authenticated)
 app.get('/test-gemini', authenticate, async (req: any, res) => {
