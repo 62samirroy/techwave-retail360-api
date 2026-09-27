@@ -98,9 +98,12 @@ export class ProductsController {
           take: limit,
           orderBy,
           include: {
-            category: true,
-            images: { orderBy: { sortOrder: 'asc' } },
-            attributes: true,
+            category: { select: { id: true, name: true, slug: true } },
+            images: {
+              orderBy: { sortOrder: 'asc' },
+              select: { id: true, url: true, altText: true, isPrimary: true, sortOrder: true },
+            },
+            inventory: { select: { currentStock: true } },
             reviews: { select: { rating: true } },
           },
         }),
@@ -145,7 +148,7 @@ export class ProductsController {
           category: true,
           images: { orderBy: { sortOrder: 'asc' } },
           attributes: true,
-          reviews: { where: { status: 'APPROVED' }, orderBy: { createdAt: 'desc' } },
+          reviews: { where: { status: 'APPROVED' }, orderBy: { createdAt: 'desc' }, take: 25 },
           inventory: true,
         },
       });

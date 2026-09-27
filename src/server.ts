@@ -68,7 +68,14 @@ const uploadsDir = path.join(__dirname, '../uploads');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
-app.use('/uploads', express.static(uploadsDir));
+app.use(
+  '/uploads',
+  express.static(uploadsDir, {
+    maxAge: '7d',
+    etag: true,
+    lastModified: true,
+  })
+);
 
 // Global session authentication middleware
 app.use('/api', authenticate);

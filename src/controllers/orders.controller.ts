@@ -76,9 +76,14 @@ export class OrdersController {
           items: {
             include: {
               product: {
-                include: {
-                  category: true,
-                  images: { where: { isPrimary: true } },
+                select: {
+                  id: true,
+                  name: true,
+                  slug: true,
+                  price: true,
+                  discountPrice: true,
+                  category: { select: { id: true, name: true, slug: true } },
+                  images: { where: { isPrimary: true }, select: { url: true, altText: true } },
                 },
               },
             },

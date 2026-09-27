@@ -4,6 +4,26 @@ import { AuthenticatedRequest } from '../types';
 
 const CART_SESSION_COOKIE = 'tw_cart_session';
 
+const CART_ITEM_INCLUDE = {
+  items: {
+    include: {
+      product: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          sku: true,
+          price: true,
+          discountPrice: true,
+          stock: true,
+          category: { select: { id: true, name: true, slug: true } },
+          images: { where: { isPrimary: true }, select: { url: true, altText: true } },
+        },
+      },
+    },
+  },
+};
+
 async function getOrCreateCart(req: AuthenticatedRequest, res: Response) {
   const session = req.user;
   let sessionId = req.cookies ? req.cookies[CART_SESSION_COOKIE] : undefined;
@@ -11,35 +31,13 @@ async function getOrCreateCart(req: AuthenticatedRequest, res: Response) {
   if (session) {
     let cart = await prisma.cart.findUnique({
       where: { userId: session.id },
-      include: {
-        items: {
-          include: {
-            product: {
-              include: {
-                category: true,
-                images: { where: { isPrimary: true } },
-              },
-            },
-          },
-        },
-      },
+      include: CART_ITEM_INCLUDE,
     });
 
     if (!cart) {
       cart = await prisma.cart.create({
         data: { userId: session.id },
-        include: {
-          items: {
-            include: {
-              product: {
-                include: {
-                  category: true,
-                  images: { where: { isPrimary: true } },
-                },
-              },
-            },
-          },
-        },
+        include: CART_ITEM_INCLUDE,
       });
     }
 
@@ -56,35 +54,13 @@ async function getOrCreateCart(req: AuthenticatedRequest, res: Response) {
 
     let cart = await prisma.cart.findUnique({
       where: { sessionId },
-      include: {
-        items: {
-          include: {
-            product: {
-              include: {
-                category: true,
-                images: { where: { isPrimary: true } },
-              },
-            },
-          },
-        },
-      },
+      include: CART_ITEM_INCLUDE,
     });
 
     if (!cart) {
       cart = await prisma.cart.create({
         data: { sessionId },
-        include: {
-          items: {
-            include: {
-              product: {
-                include: {
-                  category: true,
-                  images: { where: { isPrimary: true } },
-                },
-              },
-            },
-          },
-        },
+        include: CART_ITEM_INCLUDE,
       });
     }
 

@@ -17,42 +17,92 @@ export class AnalyticsController {
       const whereOrders: any = dateFilter ? { createdAt: { gte: dateFilter } } : {};
 
       const [
-        allOrders,
-        todayOrders,
+        paidOrdersAgg,
+        todayPaidAgg,
+        totalOrdersCount,
+        pendingOrdersCount,
+        completedOrdersCount,
+        statusGroup,
         rangeOrders,
         totalCustomers,
         lowStockProducts,
         categories,
+        recentOrders,
       ] = await Promise.all([
-        prisma.order.findMany({ select: { id: true, total: true, status: true, paymentStatus: true, createdAt: true } }),
-        prisma.order.findMany({ where: { createdAt: { gte: todayStart } }, select: { total: true, paymentStatus: true } }),
-        prisma.order.findMany({ where: whereOrders, orderBy: { createdAt: 'desc' }, include: { items: true } }),
+        prisma.order.aggregate({
+          where: { paymentStatus: 'PAID' },
+          _sum: { total: true },
+          _count: { id: true },
+        }),
+        prisma.order.aggregate({
+          where: { createdAt: { gte: todayStart }, paymentStatus: 'PAID' },
+          _sum: { total: true },
+        }),
+        prisma.order.count(),
+        prisma.order.count({
+          where: { status: { in: ['PENDING', 'CONFIRMED', 'PROCESSING'] } },
+        }),
+        prisma.order.count({
+          where: { status: 'DELIVERED' },
+        }),
+        prisma.order.groupBy({
+          by: ['status'],
+          _count: { id: true },
+        }),
+        prisma.order.findMany({
+          where: whereOrders,
+          orderBy: { createdAt: 'desc' },
+          select: {
+            id: true,
+            createdAt: true,
+            paymentStatus: true,
+            total: true,
+            items: {
+              select: {
+                productId: true,
+                productName: true,
+                productSku: true,
+                quantity: true,
+                total: true,
+              },
+            },
+          },
+        }),
         prisma.user.count({ where: { role: 'CUSTOMER' } }),
         prisma.product.count({ where: { stock: { lte: 5 }, status: 'ACTIVE' } }),
         prisma.category.findMany({
-          include: {
+          select: {
+            name: true,
             products: {
               select: {
-                id: true,
                 orderItems: { select: { total: true, quantity: true } },
               },
             },
           },
         }),
+        prisma.order.findMany({
+          take: 6,
+          orderBy: { createdAt: 'desc' },
+          select: {
+            id: true,
+            orderNumber: true,
+            customerName: true,
+            city: true,
+            state: true,
+            status: true,
+            total: true,
+            paymentStatus: true,
+            createdAt: true,
+          },
+        }),
       ]);
 
-      const paidOrdersAll = allOrders.filter((o) => o.paymentStatus === 'PAID');
-      const totalRevenue = paidOrdersAll.reduce((acc, o) => acc + o.total, 0);
-
-      const todayPaidOrders = todayOrders.filter((o) => o.paymentStatus === 'PAID');
-      const todayRevenue = todayPaidOrders.reduce((acc, o) => acc + o.total, 0);
-
-      const pendingOrders = allOrders.filter((o) =>
-        ['PENDING', 'CONFIRMED', 'PROCESSING'].includes(o.status)
-      ).length;
-
-      const completedOrders = allOrders.filter((o) => o.status === 'DELIVERED').length;
-      const averageOrderValue = paidOrdersAll.length > 0 ? Math.round(totalRevenue / paidOrdersAll.length) : 0;
+      const totalRevenue = paidOrdersAgg._sum.total || 0;
+      const paidOrdersCount = paidOrdersAgg._count.id || 0;
+      const todayRevenue = todayPaidAgg._sum.total || 0;
+      const pendingOrders = pendingOrdersCount;
+      const completedOrders = completedOrdersCount;
+      const averageOrderValue = paidOrdersCount > 0 ? Math.round(totalRevenue / paidOrdersCount) : 0;
 
       const salesByCategory = categories.map((cat) => {
         let revenue = 0;
@@ -76,11 +126,10 @@ export class AnalyticsController {
 
       const salesByDate = Object.values(dateMap);
 
-      const statusCounts: Record<string, number> = {};
-      allOrders.forEach((o) => {
-        statusCounts[o.status] = (statusCounts[o.status] || 0) + 1;
-      });
-      const statusDistribution = Object.entries(statusCounts).map(([status, count]) => ({ status, count }));
+      const statusDistribution = statusGroup.map((g) => ({
+        status: g.status,
+        count: g._count.id,
+      }));
 
       const productAggregation: Record<string, {
         id: string;
@@ -115,7 +164,7 @@ export class AnalyticsController {
         data: {
           totalRevenue,
           todayRevenue,
-          totalOrders: allOrders.length,
+          totalOrders: totalOrdersCount,
           pendingOrders,
           completedOrders,
           totalCustomers,
@@ -125,7 +174,7 @@ export class AnalyticsController {
           salesByDate,
           statusDistribution,
           topProducts,
-          recentOrders: rangeOrders.slice(0, 5),
+          recentOrders,
         },
       });
     } catch (error: any) {

@@ -420,11 +420,19 @@ async function syncRoyalImages() {
       }
     }
 
-    console.log('✅ Supabase PostgreSQL Database synced with verified online Pexels luxury saree URLs and complete specialty collections');
   } catch (err) {
     console.error('Non-blocking sync error:', err);
   }
 }
-syncRoyalImages();
+
+const globalForSync = global as unknown as { hasSyncedRoyalImages?: boolean };
+if (!globalForSync.hasSyncedRoyalImages) {
+  globalForSync.hasSyncedRoyalImages = true;
+  setTimeout(() => {
+    syncRoyalImages().catch((err) => {
+      console.error('Non-blocking image sync error:', err);
+    });
+  }, 1000);
+}
 
 export default prisma;

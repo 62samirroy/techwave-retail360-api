@@ -5,6 +5,7 @@ import { slugify } from '../lib/utils';
 export class CategoriesController {
   static async getAll(req: Request, res: Response) {
     try {
+      res.setHeader('Cache-Control', 'public, max-age=120, stale-while-revalidate=600');
       const categories = await prisma.category.findMany({
         orderBy: { sortOrder: 'asc' },
         include: { _count: { select: { products: true } } },
