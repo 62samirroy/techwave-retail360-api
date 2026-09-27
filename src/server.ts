@@ -39,6 +39,7 @@ const allowedOrigins = Array.from(
     'http://127.0.0.1:3000',
     'http://127.0.0.1:3001',
     'https://royalsaree.techwavesolutions.dev',
+    'https://techwave-retail360-ui-gold.vercel.app',
   ])
 );
 
