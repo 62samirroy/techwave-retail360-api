@@ -94,7 +94,7 @@ app.use('/api', authenticate);
 // Mount main API routes
 app.use('/api', routes);
 
-// System Health Check
+// System Health Check (Includes root for Render healthchecks)
 const healthHandler = (req: express.Request, res: express.Response) => {
   res.json({
     status: 'ok',
@@ -104,6 +104,7 @@ const healthHandler = (req: express.Request, res: express.Response) => {
     timestamp: new Date().toISOString(),
   });
 };
+app.get('/', healthHandler);
 app.get('/health', healthHandler);
 app.get('/api/health', healthHandler);
 
