@@ -477,7 +477,7 @@ export class ToolOrchestrator {
             d.date,
             idx === 0 ? 'Today' : d.label.split(' ')[0],
             `${d.secondaryValue} order${d.secondaryValue === 1 ? '' : 's'}`,
-            d.formattedValue || formatPrice(d.value),
+            formatPrice(d.value),
             formatPrice(aov),
             d.value > 0 ? 'PAID' : 'PENDING',
           ];
@@ -1997,7 +1997,7 @@ export class DeterministicToolEngine {
         const lastOrder = await prisma.order.findFirst({
           orderBy: { createdAt: 'desc' },
           include: {
-            items: true,
+            orderItems: true,
           },
         });
 
@@ -2009,8 +2009,8 @@ export class DeterministicToolEngine {
           });
 
           const itemsList =
-            lastOrder.items && lastOrder.items.length > 0
-              ? lastOrder.items.map((it) => `• **${it.productName}** × ${it.quantity} (${formatPrice(it.price)})`).join('\n')
+            lastOrder.orderItems && lastOrder.orderItems.length > 0
+              ? lastOrder.orderItems.map((it) => `• **${it.productName}** × ${it.quantity} (${formatPrice(it.unitPrice)})`).join('\n')
               : '• Handloom Saree Piece';
 
           const table: AITableData = {

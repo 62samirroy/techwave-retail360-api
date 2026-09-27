@@ -52,7 +52,7 @@ export class ReviewsController {
             { customerEmail: req.user.email },
             ...(req.user.phone ? [{ customerPhone: req.user.phone }] : []),
           ],
-          status: { notIn: ['CANCELLED', 'FAILED'] },
+          status: { notIn: ['CANCELLED'] },
           AND: [
             {
               OR: [
@@ -62,11 +62,11 @@ export class ReviewsController {
             },
           ],
         },
-        include: { items: true },
+        include: { orderItems: true },
       });
 
       const hasPurchased = userOrders.some((order) =>
-        order.items.some((item) => item.productId === productId)
+        order.orderItems.some((item) => item.productId === productId)
       );
 
       const existingReview = await prisma.review.findFirst({
@@ -106,7 +106,7 @@ export class ReviewsController {
             { customerEmail: req.user.email },
             ...(req.user.phone ? [{ customerPhone: req.user.phone }] : []),
           ],
-          status: { notIn: ['CANCELLED', 'FAILED'] },
+          status: { notIn: ['CANCELLED'] },
           AND: [
             {
               OR: [
@@ -116,11 +116,11 @@ export class ReviewsController {
             },
           ],
         },
-        include: { items: true },
+        include: { orderItems: true },
       });
 
       const hasPurchased = userOrders.some((order) =>
-        order.items.some((item) => item.productId === productId)
+        order.orderItems.some((item) => item.productId === productId)
       );
 
       if (!hasPurchased && req.user.role !== 'ADMIN') {
