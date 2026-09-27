@@ -1997,7 +1997,7 @@ export class DeterministicToolEngine {
         const lastOrder = await prisma.order.findFirst({
           orderBy: { createdAt: 'desc' },
           include: {
-            orderItems: true,
+            items: true,
           },
         });
 
@@ -2009,8 +2009,8 @@ export class DeterministicToolEngine {
           });
 
           const itemsList =
-            lastOrder.orderItems && lastOrder.orderItems.length > 0
-              ? lastOrder.orderItems.map((it) => `• **${it.productName}** × ${it.quantity} (${formatPrice(it.unitPrice)})`).join('\n')
+            lastOrder.items && lastOrder.items.length > 0
+              ? lastOrder.items.map((it) => `• **${it.productName}** × ${it.quantity} (${formatPrice(it.unitPrice)})`).join('\n')
               : '• Handloom Saree Piece';
 
           const table: AITableData = {

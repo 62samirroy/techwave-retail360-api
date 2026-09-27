@@ -62,11 +62,11 @@ export class ReviewsController {
             },
           ],
         },
-        include: { orderItems: true },
+        include: { items: true },
       });
 
       const hasPurchased = userOrders.some((order) =>
-        order.orderItems.some((item) => item.productId === productId)
+        order.items.some((item) => item.productId === productId)
       );
 
       const existingReview = await prisma.review.findFirst({
@@ -116,11 +116,11 @@ export class ReviewsController {
             },
           ],
         },
-        include: { orderItems: true },
+        include: { items: true },
       });
 
       const hasPurchased = userOrders.some((order) =>
-        order.orderItems.some((item) => item.productId === productId)
+        order.items.some((item) => item.productId === productId)
       );
 
       if (!hasPurchased && req.user.role !== 'ADMIN') {
