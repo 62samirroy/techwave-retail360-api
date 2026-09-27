@@ -1,0 +1,46 @@
+name: Backend API CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  validate-and-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Validate Prisma Schema & Generate Client
+        run: npx prisma generate
+        env:
+          DATABASE_URL: "postgresql://postgres:dummy@localhost:5432/postgres"
+
+      - name: TypeScript Type Check
+        run: npx tsc --noEmit
+
+      - name: Compile Production Bundle
+        run: npm run build
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Verify Docker Container Build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          tags: techwave/retail360-api:test

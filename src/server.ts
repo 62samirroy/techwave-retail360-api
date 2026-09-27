@@ -13,6 +13,9 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3000';
 
+// Trust reverse proxies (Nginx, Traefik, AWS ALB, Render, Railway, Fly.io)
+app.set('trust proxy', 1);
+
 // Security Headers
 app.disable('x-powered-by');
 app.use((req, res, next) => {
@@ -23,13 +26,21 @@ app.use((req, res, next) => {
 });
 
 // CORS configuration allowing cookies and headers from trusted frontend clients
-const allowedOrigins = [
-  CLIENT_URL,
-  'http://localhost:3000',
-  'http://localhost:3001',
-  'http://127.0.0.1:3000',
-  'http://127.0.0.1:3001',
-];
+const configuredOrigins = (process.env.CLIENT_URL || '')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+
+const allowedOrigins = Array.from(
+  new Set([
+    ...configuredOrigins,
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:3001',
+    'https://royalsaree.techwavesolutions.dev',
+  ])
+);
 
 app.use(
   cors({
@@ -152,7 +163,7 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   });
 });
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log('====================================================');
   console.log(`🚀 TechWave Retail360 API Server running on port ${PORT}`);
   console.log(`🔗 Endpoint Base: http://localhost:${PORT}/api`);
@@ -161,5 +172,30 @@ app.listen(PORT, () => {
   console.log(`🛍️ Customer: priya.sharma@example.com`);
   console.log('====================================================');
 });
+
+// Production Graceful Shutdown Handlers
+const gracefulShutdown = (signal: string) => {
+  console.log(`\n🛑 Received ${signal}. Starting graceful shutdown...`);
+  server.close(async () => {
+    console.log('HTTP server closed.');
+    try {
+      const { prisma } = await import('./lib/db');
+      await prisma.$disconnect();
+      console.log('Database connections closed cleanly.');
+    } catch (e) {
+      console.error('Error during database disconnect:', e);
+    }
+    process.exit(0);
+  });
+
+  // Force exit if shutdown takes too long (e.g. hanging connections)
+  setTimeout(() => {
+    console.error('Could not close connections in time, forcefully shutting down');
+    process.exit(1);
+  }, 10000).unref();
+};
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 export default app;
