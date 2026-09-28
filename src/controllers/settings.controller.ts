@@ -20,13 +20,22 @@ export class SettingsController {
     try {
       const body = req.body;
       for (const [key, value] of Object.entries(body)) {
-        if (typeof value === 'string' || typeof value === 'number') {
-          await prisma.setting.upsert({
-            where: { key },
-            create: { key, value: String(value) },
-            update: { value: String(value) },
-          });
+        let stringValue: string;
+        if (typeof value === 'string') {
+          stringValue = value;
+        } else if (typeof value === 'number' || typeof value === 'boolean') {
+          stringValue = String(value);
+        } else if (value !== null && typeof value === 'object') {
+          stringValue = JSON.stringify(value);
+        } else {
+          continue;
         }
+
+        await prisma.setting.upsert({
+          where: { key },
+          create: { key, value: stringValue },
+          update: { value: stringValue },
+        });
       }
       return res.json({ success: true, message: 'Settings saved successfully' });
     } catch (error: any) {

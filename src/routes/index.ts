@@ -16,6 +16,7 @@ import { AnalyticsController } from '../controllers/analytics.controller';
 import { AIController } from '../controllers/ai.controller';
 import { SettingsController } from '../controllers/settings.controller';
 import { UploadController } from '../controllers/upload.controller';
+import { HomepageController } from '../controllers/homepage.controller';
 import { requireAdmin, requireAuth } from '../middleware/auth';
 import { rateLimiter } from '../middleware/rateLimiter';
 
@@ -120,6 +121,11 @@ router.post('/ai/business', requireAdmin, AIController.businessChat);
 // Settings
 router.get('/settings', SettingsController.getSettings);
 router.put('/settings', requireAdmin, SettingsController.updateSettings);
+
+// Homepage CMS
+router.get('/homepage', HomepageController.getConfig);
+router.put('/homepage', requireAdmin, HomepageController.updateConfig);
+router.post('/homepage/reset', requireAdmin, HomepageController.resetDefaults);
 
 // Media / Image Upload
 router.post('/upload', UploadController.upload);
