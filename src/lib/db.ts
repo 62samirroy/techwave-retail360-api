@@ -425,14 +425,7 @@ async function syncRoyalImages() {
   }
 }
 
-const globalForSync = global as unknown as { hasSyncedRoyalImages?: boolean };
-if (!globalForSync.hasSyncedRoyalImages) {
-  globalForSync.hasSyncedRoyalImages = true;
-  setTimeout(() => {
-    syncRoyalImages().catch((err) => {
-      console.error('Non-blocking image sync error:', err);
-    });
-  }, 1000);
-}
+// Automatic sync disabled to protect user uploaded images and modifications
+// (syncRoyalImages can be run manually if needed)
 
 export default prisma;
