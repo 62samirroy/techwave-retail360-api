@@ -54,6 +54,55 @@ export const DEFAULT_HOMEPAGE_CONFIG = {
       link: '/categories/kanjivaram-silk',
     },
   },
+  weaveCraft: {
+    badge: 'Curated Artisan Collections',
+    title: 'Shop by Weave & Craft',
+    subtitle: "Timeless regional handlooms crafted across India's celebrated weaving heritage",
+    crafts: [
+      {
+        id: 1,
+        title: 'Kanjivaram Silk',
+        badge: 'Temple Korvai',
+        href: '/categories/kanjivaram-silk',
+        image: '/images/products/saree-emerald-peacock.jpg',
+      },
+      {
+        id: 2,
+        title: 'Banarasi Brocade',
+        badge: 'Kadwa Jaal',
+        href: '/categories/banarasi-brocade',
+        image: '/hero-banner-2.jpg',
+      },
+      {
+        id: 3,
+        title: 'Organza & Tissue',
+        badge: 'Ethereal Sheer',
+        href: '/categories/organza-floral',
+        image: '/images/products/saree-organza-lotus.jpg',
+      },
+      {
+        id: 4,
+        title: 'Chanderi & Linen',
+        badge: 'Handloom Grace',
+        href: '/categories/chanderi-linen',
+        image: 'https://images.pexels.com/photos/2220316/pexels-photo-2220316.jpeg?auto=compress&cs=tinysrgb&w=600',
+      },
+      {
+        id: 5,
+        title: 'Bandhani & Leheriya',
+        badge: 'Festive Tie-Dye',
+        href: '/categories/bandhani-leheriya',
+        image: '/images/products/saree-bandhani-gharchola.jpg',
+      },
+      {
+        id: 6,
+        title: 'Party & Cocktail',
+        badge: 'Modern Silks',
+        href: '/categories/party-cocktail-wear',
+        image: 'https://images.pexels.com/photos/247287/pexels-photo-247287.jpeg?auto=compress&cs=tinysrgb&w=600',
+      },
+    ],
+  },
   bridalFestive: {
     badge: 'CELEBRITY & ROYAL LOOKBOOK',
     title: 'Bridal & Festive Edit',
@@ -296,6 +345,13 @@ export class HomepageController {
               ...DEFAULT_HOMEPAGE_CONFIG.kanchipuram.lookbookCard,
               ...(parsed.kanchipuram?.lookbookCard || {}),
             },
+          },
+          weaveCraft: {
+            ...DEFAULT_HOMEPAGE_CONFIG.weaveCraft,
+            ...(parsed.weaveCraft || {}),
+            crafts: parsed.weaveCraft?.crafts?.length
+              ? parsed.weaveCraft.crafts
+              : DEFAULT_HOMEPAGE_CONFIG.weaveCraft.crafts,
           },
           bridalFestive: {
             ...DEFAULT_HOMEPAGE_CONFIG.bridalFestive,

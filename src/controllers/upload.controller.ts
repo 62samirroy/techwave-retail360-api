@@ -31,12 +31,16 @@ export class UploadController {
       else if (mimeType.includes('webp')) ext = 'webp';
       else if (mimeType.includes('gif')) ext = 'gif';
       else if (mimeType.includes('svg')) ext = 'svg';
+      else if (mimeType.includes('mp4')) ext = 'mp4';
+      else if (mimeType.includes('webm')) ext = 'webm';
+      else if (mimeType.includes('mov')) ext = 'mov';
+      else if (mimeType.includes('m4v')) ext = 'm4v';
 
       const buffer = Buffer.from(base64Data, 'base64');
 
-      // Check max size (10MB)
-      if (buffer.length > 10 * 1024 * 1024) {
-        return res.status(400).json({ success: false, message: 'File size exceeds 10MB limit' });
+      // Check max size (50MB)
+      if (buffer.length > 50 * 1024 * 1024) {
+        return res.status(400).json({ success: false, message: 'File size exceeds 50MB limit' });
       }
 
       const cleanOriginalName = filename
