@@ -103,10 +103,11 @@ model Category {
   slug        String   @unique
   description String?
   image       String?
-  status      String   @default("ACTIVE")
-  sortOrder   Int      @default(0)
-  createdAt   DateTime @default(now()) @db.Timestamptz
-  updatedAt   DateTime @updatedAt @db.Timestamptz
+  status       String   @default("ACTIVE")
+  sortOrder    Int      @default(0)
+  showInNavbar Boolean  @default(false)
+  createdAt    DateTime @default(now()) @db.Timestamptz
+  updatedAt    DateTime @updatedAt @db.Timestamptz
 
   products    Product[]
 
@@ -272,8 +273,8 @@ model OrderItem {
   id             String   @id @default(uuid()) @db.Uuid
   orderId        String   @db.Uuid
   order          Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  productId      String   @db.Uuid
-  product        Product  @relation(fields: [productId], references: [id])
+  productId      String?  @db.Uuid
+  product        Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
   productName    String
   productSku     String
   productImage   String?  @db.Text

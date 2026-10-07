@@ -18,7 +18,7 @@ export class CategoriesController {
 
   static async create(req: Request, res: Response) {
     try {
-      const { name, description, image, sortOrder } = req.body;
+      const { name, description, image, sortOrder, showInNavbar } = req.body;
       if (!name) {
         return res.status(400).json({ success: false, message: 'Category name is required' });
       }
@@ -34,6 +34,7 @@ export class CategoriesController {
           description: description || null,
           image: image || null,
           sortOrder: Number(sortOrder) || 0,
+          showInNavbar: showInNavbar === true || showInNavbar === 'true',
           status: 'ACTIVE',
         },
       });
@@ -47,7 +48,7 @@ export class CategoriesController {
   static async update(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const { name, description, image, status, sortOrder } = req.body;
+      const { name, description, image, status, sortOrder, showInNavbar } = req.body;
 
       const updated = await prisma.category.update({
         where: { id },
@@ -57,6 +58,7 @@ export class CategoriesController {
           ...(image !== undefined && { image }),
           ...(status && { status }),
           ...(sortOrder !== undefined && { sortOrder: Number(sortOrder) }),
+          ...(showInNavbar !== undefined && { showInNavbar: showInNavbar === true || showInNavbar === 'true' }),
         },
       });
 
